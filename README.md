@@ -20,12 +20,6 @@ pip install numpy mpi4py scipy
 
 ## Environment Variables
 
-Variable	Description
-|-----------|---------------|
-|MUMPS_INC	| Path to the MUMPS include directory (e.g., ``dmumps_c.h``)|
-|MUMPS_INC	| Path to the MUMPS library directory (e.g., ``libdmumps.so``)|
-|MUMPS_SOLVERS	| Specify which MUMPS solver to use (``dmumps, cmumps, smumps, zmumps``)|
-
 | Variable       | Description | 
 |----------------|------------------------------------------------------------------------|
 | MUMPS_INC      | Path to the MUMPS include directory (e.g., ``dmumps_c.h``)             |
