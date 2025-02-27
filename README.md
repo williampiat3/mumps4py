@@ -64,6 +64,11 @@ python setup.py build_ext --inplace
 pip install .
 ```
 
+### Development mode
+```bash
+python3 -m pip install --user -e .
+```
+
 ## Testing the Installation
 
 ### To verify that MUMPS4PY is installed correctly:
