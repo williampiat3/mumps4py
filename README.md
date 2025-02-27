@@ -90,3 +90,9 @@ tests/test_dmumps.py .  [50%]
 tests/test_smumps.py s  [75%]
 tests/test_zmumps.py s  [100%]
 ```
+
+## Cleaning Build Artifacts
+
+```bash
+python setup.py clean
+```
