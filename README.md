@@ -23,7 +23,7 @@ pip install numpy mpi4py scipy
 | Variable       | Description | 
 |----------------|------------------------------------------------------------------------|
 | MUMPS_INC      | Path to the MUMPS include directory (e.g., ``dmumps_c.h``)             |
-| MUMPS_INC      |  Path to the MUMPS library directory (e.g., ``libdmumps.so``)          |   
+| MUMPS_LIB      |  Path to the MUMPS library directory (e.g., ``libdmumps.so``)          |   
 | MUMPS_SOLVERS  | Specify which MUMPS solver to use (``dmumps, cmumps, smumps, zmumps``) | 
 
 ### Example Setup:
