@@ -31,7 +31,13 @@ pip install numpy mpi4py scipy
 ```bash
 export MUMPS_INC="/path/to/MUMPS/include"
 export MUMPS_LIB="/path/to/MUMPS/lib"
-export MUMPS_SOLVERS="dmumps" or export MUMPS_SOLVERS="dmumps,cmumps,zmumps,smumps"
+export MUMPS_SOLVERS="dmumps"
+```
+
+#### You can use all mumps solvers:
+
+```bash
+export MUMPS_SOLVERS="dmumps,cmumps,zmumps,smumps"
 ```
 
 ### To make this permanent:
