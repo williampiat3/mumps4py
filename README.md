@@ -23,17 +23,14 @@ pip install numpy mpi4py scipy
 Variable	Description
 |-----------|---------------|
 |MUMPS_INC	| Path to the MUMPS include directory (e.g., ``dmumps_c.h``)|
-|MUMPS_LIB	| Path to the MUMPS library directory (e.g., ``libdmumps.so``)|
+|MUMPS_INC	| Path to the MUMPS library directory (e.g., ``libdmumps.so``)|
 |MUMPS_SOLVERS	| Specify which MUMPS solver to use (``dmumps, cmumps, smumps, zmumps``)|
 
-| Partition | Max. Cpu Time | Nodes available for the partition | Max nodes per job | Min-Max cores per job     |
-|-----------|---------------|-------------------------------------------------------|-------------------|---------------------------|
-| defq      | 4 hours       |              5 (node01, node02 node03, node14, node15)  |             1       |     1-44          |
-| shortq    | 12 hours      |              5 (node01, node02 node03, node14, node15)  |             2       |     1-88          |
-| longq     | 30 days       |              5 (node01, node02 node03, node14, node15)  |             1       |     1-44          |
-| special   | 30 minutes    |              15 (all nodes)                             |            15       |     1-652         |
-| visu      | 24 hours      |              1  (visu01)                                |             1       |     1-44          |
-| gpu       | 48 hours      |              12 (node[06-17])                           |             2       |     1-88          |
+| Variable       | Description | 
+|----------------|------------------------------------------------------------------------|
+| MUMPS_INC      | Path to the MUMPS include directory (e.g., ``dmumps_c.h``)             |
+| MUMPS_INC      |  Path to the MUMPS library directory (e.g., ``libdmumps.so``)          |   
+| MUMPS_SOLVERS  | Specify which MUMPS solver to use (``dmumps, cmumps, smumps, zmumps``) | 
 
 ### Example Setup:
 
