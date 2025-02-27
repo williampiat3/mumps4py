@@ -28,48 +28,59 @@ Variable	Description
 
 ### Example Setup:
 
+```bash
 export MUMPS_INC="/path/to/MUMPS/include"
 export MUMPS_LIB="/path/to/MUMPS/lib"
 export MUMPS_SOLVERS="dmumps" or export MUMPS_SOLVERS="dmumps,cmumps,zmumps,smumps"
+```
 
 ### To make this permanent:
 
+```bash
 echo 'export MUMPS_INC="/path/to/MUMPS/include"' >> ~/.bashrc
 echo 'export MUMPS_LIB="/path/to/MUMPS/lib"' >> ~/.bashrc
 echo 'export MUMPS_SOLVERS="dmumps"' >> ~/.bashrc
 source ~/.bashrc
-
+```
 ## Installation
 
 ### Clone and build:
 
+```bash
 git clone https://github.com/imadki/mumps4py.git
 cd mumps4py
 python setup.py build_ext --inplace
 
+```
 ### Install globaly
 
+```bash
 pip install .
-
+```
 
 ## Testing the Installation
 
 ### To verify that MUMPS4PY is installed correctly:
 
+```bash
 import mumps4py.mumps_solver as mps
 solver = mps.MumpsSolver(verbose=True, system="double")
 print("MUMPS Solver Initialized:", solver)
-
+```
 
 ## Running Tests
 
 ### Run pytest to validate the installation:
 
+```bash
 pytest tests/
+```
 
 ### Example output:
 
+```bash
 tests/test_cmumps.py s  [25%]
 tests/test_dmumps.py .  [50%]
 tests/test_smumps.py s  [75%]
 tests/test_zmumps.py s  [100%]
+```
