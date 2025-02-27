@@ -86,6 +86,10 @@ print("MUMPS Solver Initialized:", solver)
 ```bash
 pytest tests/
 ```
+or
+```bash
+python -m pytest
+```
 
 ### Example output:
 
