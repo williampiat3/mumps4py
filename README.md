@@ -14,7 +14,7 @@ To use MUMPS4PY, you need:
 
 ### Installing MUMPS (Ubuntu)  
 ```bash
-sudo apt install libmumps-seq-dev libmumps-dev libscotch-dev libopenmpi-dev
+sudo apt install libmumps-ptscotch-dev
 ```
 
 ## Environment Variables
