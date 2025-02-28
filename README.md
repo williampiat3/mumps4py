@@ -12,10 +12,9 @@ To use MUMPS4PY, you need:
 - **Python** 3.5+  
 - **NumPy**, **mpi4py**, and **SciPy**  
 
-### Installing Dependencies (Linux)  
+### Installing MUMPS (Ubuntu)  
 ```bash
 sudo apt install libmumps-seq-dev libmumps-dev libscotch-dev libopenmpi-dev
-pip install numpy mpi4py scipy
 ```
 
 ## Environment Variables
