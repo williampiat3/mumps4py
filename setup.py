@@ -151,7 +151,7 @@ def get_ext_modules():
         header_file = os.path.join(MUMPS_INCLUDE_DIR, f'{solver}_c.h')
         if not os.path.exists(header_file):
             sys.stderr.write(f"Header file not found: {header_file}\n")
-            sys.stderr.write("Please ensure MUMPS is installed and set MUMPS_INCLUDE to the correct path.\n")
+            sys.stderr.write("Please ensure MUMPS is installed and set MUMPS_INC to the correct path.\n")
             sys.exit(1)
 
     # Check for solver libraries
