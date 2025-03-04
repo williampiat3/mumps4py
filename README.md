@@ -33,7 +33,7 @@ export MUMPS_LIB="/path/to/MUMPS/lib"
 export MUMPS_SOLVERS="dmumps"
 ```
 
-#### You can use all mumps solvers:
+#### You can configure mumps4py using all mumps solvers:
 
 ```bash
 export MUMPS_SOLVERS="dmumps,cmumps,zmumps,smumps"
