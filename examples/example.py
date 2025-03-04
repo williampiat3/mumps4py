@@ -26,6 +26,7 @@ ts = MPI.Wtime()
 solver.set_shape(n)
 solver.set_rcd_centralized(irn+1, jcn+1, a)
 
+
 solver._mumps_call(job=1)
 
 rhs = b.copy()
@@ -35,6 +36,7 @@ solver._mumps_call(job=2)
 solver.set_rhs_centralized(rhs)
 solver._mumps_call(3)
 
+print("Solution:", rhs)
 print("cpu time is ",  MPI.Wtime() - ts)
 
 
