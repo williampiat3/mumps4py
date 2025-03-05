@@ -33,12 +33,9 @@ local_irn = irn[local_indices]
 local_jcn = jcn[local_indices]
 local_a = a[local_indices]
 
-solver.set_rcd_distributed(local_irn+1, local_jcn+1, local_a)
+solver.set_rcd_distributed(local_irn+1, local_jcn+1, local_a, n)
 solver.set_icntl(18,3)
 
-if MPI.COMM_WORLD.Get_rank() == 0:
-    solver.set_shape(n)
-    
 #Analyse 
 solver.analyze()
 # #Factorization Phase

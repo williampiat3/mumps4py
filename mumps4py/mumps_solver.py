@@ -13,7 +13,7 @@ class mumps_complex(ctypes.Structure):
 class MumpsSolver:
     
     def __init__(self, system='double', sym=0, par=1, verbose=None, 
-                 mpi_comm=None, mem_relax=20, int_type=None):
+                 mpi_comm=None, mem_relax=20):
         
         """
         Initialize the MUMPS solver.
@@ -21,16 +21,15 @@ class MumpsSolver:
         :param sym: Symmetric (1) or Unsymmetric (0) matrix.
         :param par: Parallel mode (1 = master process, 0 = slave process).
         :param system: Precision type ("double", "single", "complex128", "complex64")
-        :param int_type: Integer type ("long" for int64, None for int32).
         """
         
         self.system = system
         
         self._precompute_mumps_func()
         self._load_mumps_module()
-        self._configure_system()
+        self._transform_array_to_pointer()
+        self.int_size = self._detect_mumps_int_type()
         
-
         # Set MPI communication
         self.comm = MPI.COMM_WORLD if mpi_comm is None else mpi_comm
         self.struct.comm_fortran = self.comm.py2f()
@@ -58,16 +57,22 @@ class MumpsSolver:
         }
     
         if self.system not in self.mumps_variants:
-            raise ValueError(f"Unsupported system type: {self.system}")
+            raise ValueError(
+            f"Unsupported system type: {self.system}. "
+            f"Supported types are: {list(self.mumps_variants.keys())}"
+        )
         
         self.mumps_func, self.struct_type =self.mumps_variants[self.system]
         
-    def _configure_system(self):
+    def _transform_array_to_pointer(self):
         """Configure the MUMPS system based on precision and type."""
         
-        self.transform_arr = lambda arr: ctypes.cast(arr.ctypes.data,
-                                                     ctypes.c_void_p).value
-    
+        self.transform_arr = lambda arr: (
+            ctypes.cast(arr.ctypes.data, ctypes.c_void_p).value
+            if not (np.issubdtype(arr.dtype, np.integer) and arr.dtype != self.int_size)
+            else exec("raise TypeError(f'Array types differ: MUMPS expect {self.int_size}, but got {arr.dtype}')")
+        )
+
     def _load_mumps_module(self):
         """Dynamically load the MUMPS module and stop execution if missing."""
         try:
@@ -88,34 +93,27 @@ class MumpsSolver:
     
         except ImportError as e:
             raise RuntimeError(f"MUMPS module loading failed: {e}")  # 🚀 Stops execution immediately!
-
+  
+    
     def _detect_mumps_int_type(self):
-        """Detect whether MUMPS was compiled with int32 or int64 using the MUMPS wrapper."""
-    
-        # Récupérer le type réel de `irn_loc` dans le wrapper
-        int_pointer_type = type(self.struct.irn)  # Doit être POINTER(c_int32) ou POINTER(c_int64)
-        
-        print(issubclass(int_pointer_type, int), int_pointer_type)
-    
-        # Vérifier quel type d'entier est utilisé
-        if int_pointer_type == ctypes.POINTER(ctypes.c_int32):
-            print("MUMPS is compiled with int32.")
-            return ctypes.c_int32
-        elif int_pointer_type == ctypes.POINTER(ctypes.c_int64):
-            #print("MUMPS is compiled with int64 (MUMPS_INTSIZE64).")
-            return ctypes.c_int64
-        else:
-            raise RuntimeError(f"Unexpected MUMPS integer type: {int_pointer_type}")
+        """Detect the integer type expected by MUMPS based on MUMPS_INT size."""
+        from mumps4py._mumps_wrapper import get_mumps_int_size
+        int_size = get_mumps_int_size()
 
+        if int_size == 4:
+            return np.int32
+        elif int_size == 8:
+            return np.int64
+        else:
+            raise RuntimeError(f"Unexpected MUMPS_INT size: {int_size} bytes")
+        
     def _init_mumps(self):
         """Initialize the MUMPS solver."""
         self.struct.job = -1  # Initialize MUMPS
         self._mumps_c(self.struct)#(ctypes.byref(self.struct))
+        if self.struct.infog[0] < 0:
+            raise RuntimeError(f"MUMPS initialization failed: {get_mumps_error_message(self.struct.infog[0], self.struct.infog[1])}")
     
-    def set_shape(self, n):
-        """Set the matrix shape."""
-        self.struct.n = n
-        
     def set_silent(self):
         self.struct.icntl[0] = -1  # suppress error messages
         self.struct.icntl[1] = -1  # suppress diagnostic messages
@@ -164,7 +162,7 @@ class MumpsSolver:
     ####################################################################
     # Centralized (master process enters the all matrix)
     ####################################################################
-    def set_rcd_centralized(self, ir, ic, data):
+    def set_rcd_centralized(self, ir, ic, data, n):
         """
         Set the matrix by row and column indicies and data vector.
         The matrix shape is determined by the maximal values of
@@ -182,7 +180,7 @@ class MumpsSolver:
             The matrix dimension.
         """
         assert ir.shape[0] == ic.shape[0] == data.shape[0]
-        
+        self.struct.n = n  # Matrix size
         self.struct.nz = ir.shape[0]
         if hasattr(self.struct, 'nnz'):
             self.struct.nnz = ir.shape[0]
@@ -192,9 +190,32 @@ class MumpsSolver:
         self.struct.a   = self.transform_arr(data)
         
     ####################################################################
+    # Centralized data (master process enters the all matrix)
+    ####################################################################
+    def set_data_centralized(self, data, n):
+        """
+        Set the matrix data vector.
+        The matrix shape is determined by the maximal values of
+        row and column indicies. The indices start with 1.
+
+        Parameters
+        ----------
+        data : array
+            The matrix entries.
+        n : int
+            The matrix dimension.
+        """
+        self.struct.n = n  # Matrix size
+        self.struct.nz = data.shape[0]
+        if hasattr(self.struct, 'nnz'):
+            self.struct.nnz = data.shape[0]
+            
+        self.struct.a   = self.transform_arr(data)
+        
+    ####################################################################
     # Distributed (each process enters some portion of the matrix)
     ####################################################################
-    def set_rcd_distributed(self, ir_loc, ic_loc, data_loc):
+    def set_rcd_distributed(self, ir_loc, ic_loc, data_loc, n):
         """Set the distributed assembled matrix.
 
         Distributed assembled matrices require setting icntl(18) != 0.
@@ -217,7 +238,8 @@ class MumpsSolver:
             The matrix dimension.
         """
         assert ir_loc.shape[0] == ic_loc.shape[0] == data_loc.shape[0]
-
+        if self.comm.Get_rank() == 0:
+            self.struct.n = n  # Matrix size
         self.struct.nz_loc = ir_loc.shape[0]
         
         if hasattr(self.struct, 'nnz_loc'):
@@ -228,9 +250,39 @@ class MumpsSolver:
         self.struct.a_loc   = self.transform_arr(data_loc)
     
     ####################################################################
+    # Distributed data (each process enters some portion of the matrix)
+    ####################################################################
+    def set_data_distributed(self, data_loc, n):
+        """Set the distributed assembled matrix.
+
+        Distributed assembled matrices require setting icntl(18) != 0.
+        """
+        
+        """
+        Set the matrix data vector.
+        The matrix shape is determined by the maximal values of
+        row and column indicies. The indices start with 1.
+
+        Parameters
+        ----------
+        data_loc : local array
+            The matrix entries.
+        n : int
+            The matrix dimension.
+        """
+        if self.comm.Get_rank() == 0:
+            self.struct.n = n  # Matrix size
+        self.struct.nz_loc = data_loc.shape[0]
+        
+        if hasattr(self.struct, 'nnz_loc'):
+            self.struct.nnz_loc = data_loc.shape[0]
+        
+        self.struct.a_loc   = self.transform_arr(data_loc)
+        
+    ####################################################################
     # Elemental centralized matrix (master process)
     ####################################################################
-    def set_elemental_matrix(self, n, nelt, eltptr, eltvar, a_elt):
+    def set_elemental_matrix(self, eltptr, eltvar, a_elt, n, nelt):
         """
         Set the matrix in elemental format (ICNTL(5)=1 and ICNTL(18)=0).
         
@@ -273,9 +325,11 @@ class MumpsSolver:
         #assert rhs.shape[1] == self.struct.n, "rhs should have size of n" 
         """Set the right hand side of the linear system."""
         if len(rhs.shape) > 1:
+            assert rhs.shape[1] == self.struct.n, "RHS column size must match matrix dimension"
             self.struct.nrhs = rhs.shape[0]
             self.struct.lrhs = rhs.shape[1]
         else:
+            assert rhs.shape[0] == self.struct.n, "RHS size must match matrix dimension"
             self.struct.nrhs = 1
         
         self.struct.rhs = self.transform_arr(rhs)
@@ -446,7 +500,7 @@ class MumpsSolver:
         self.struct.job = 3  # solve
         self._mumps_c(ctypes.byref(self.struct))
 
-        return self._data['rhs']
+        return self.pointer_to_numpy(self.struct.rhs, self.dtype, (self.struct.n,))
 
 
     def analyze(self):
@@ -482,16 +536,20 @@ class MumpsSolver:
             raise RuntimeError(f"MUMPS Error {self.struct.info[0]}")
             
     def __del__(self):
-        """Finish MUMPS."""
-        if self.struct is not None:
-            self._mumps_call(job=-2)  # done
+        """Finish MUMPS cleanup safely."""
+        if hasattr(self, 'struct') and self.struct is not None:
+            self._mumps_call(job=-2)  # Terminate MUMPS
 
         self.struct = None
          
     def __repr__(self):
-        """Display a resume of the object."""
-        return f"<MumpsSolver system={self.struct.sym}, n={self.n}>"
+        return f"<MumpsSolver system={self.system}, sym={self.struct.sym}, n={self.struct.n}>"
     
+    
+    @staticmethod 
+    def _raise_type_error(found, expected):
+        raise TypeError(f"vector types differ: expected {expected}, but got {found}")
+
     @staticmethod 
     def pointer_to_numpy(ptr, dtype, shape):
         """

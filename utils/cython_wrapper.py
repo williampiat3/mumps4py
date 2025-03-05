@@ -66,7 +66,15 @@ def generate_cython_wrapper(fields, class_name, filename):
             cython_code += f"        {ctype}{ptr} {varname}\n"
 
     cython_code += f"\n    void c_{filename[:-2]} '{filename[:-2]}' (c_{class_name} *) nogil\n\n"
-
+    
+    #Add the sizeof declaration and get_mumps_int_size function here
+    cython_code += """cdef extern from "stddef.h":
+    size_t sizeof()\n\n"""
+    
+    cython_code += """def get_mumps_int_size():
+    \"\"\"Return the size of MUMPS_INT in bytes.\"\"\"
+    return sizeof(MUMPS_INT)\n\n"""
+    
     cython_code += f"cdef class {class_name}:\n"
     cython_code += f"    cdef c_{class_name} obj\n\n"
 

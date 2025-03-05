@@ -44,7 +44,7 @@ solver.set_icntl(5, 1)
 solver.set_icntl(18, 0)
 
 # Set elemental matrix with proper formatting
-solver.set_elemental_matrix(n, nelt, eltptr, eltvar, a_elt)
+solver.set_elemental_matrix(eltptr, eltvar, a_elt, n, nelt)
 
 solver.set_shape(n)
 solver.set_rhs_centralized(bb)

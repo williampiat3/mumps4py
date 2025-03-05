@@ -33,8 +33,7 @@ jcn = np.array([0, 1, 0, 1, 2, 1, 2, 2, 3], dtype=np.int32)  # Column indices (0
 a = np.array([4.0, -1.0, -1.0, 4.0, -1.0, -1.0, 4.0, -1.0, 3.0], dtype=dtype)  # Matrix values
 
 
-solver.set_shape(n)
-solver.set_rcd_centralized(irn+1, jcn+1, a)
+solver.set_rcd_centralized(irn+1, jcn+1, a, n)
 
 # Analyze and Factorize
 solver.analyze()

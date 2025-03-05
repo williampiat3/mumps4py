@@ -45,14 +45,11 @@ local_irn = irn[local_indices]
 local_jcn = jcn[local_indices]
 local_a = a[local_indices]
 
-# Set problem size
-solver.set_shape(n)
-
 # Set ICNTL(18) BEFORE setting the matrix (important!)
 solver.set_icntl(18, 3)  # Enable distributed assembly
 
 # Set the matrix (distributed format)
-solver.set_rcd_distributed(local_irn, local_jcn, local_a)
+solver.set_rcd_distributed(local_irn, local_jcn, local_a, n)
 
 # Set ICNTL(21) BEFORE factorization
 solver.set_icntl(21, 1)  # Enable distributed solution

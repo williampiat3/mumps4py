@@ -14,8 +14,7 @@ def test_solve_single():
     a = np.array([3.0,-3.0,2.0,1.0,3.0,2.0,4.0,2.0,6.0,-1.0,4.0,1.0], dtype=dtype)
     b = np.array([20.0,24.0,9.0,6.0,13.0], dtype=dtype)
 
-    solver.set_shape(n)
-    solver.set_rcd_centralized(irn+1, jcn+1, a)
+    solver.set_rcd_centralized(irn+1, jcn+1, a, n)
     solver._mumps_call(job=1)
 
     rhs = b.copy()
