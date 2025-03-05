@@ -130,19 +130,31 @@ def run_cython(source, includes=(), force=False):
 # --------------------------------------------------------------------
 
 def get_ext_modules():
+    import platform
+    
     wrapper_script = os.path.join(topdir, 'utils', 'cython_wrapper.py')
     if not os.path.exists(wrapper_script):
         raise FileNotFoundError(f"Wrapper script not found: {wrapper_script}")
-    
+
     namespace = {}
     with open(wrapper_script, 'r') as f:
         exec(f.read(), namespace)
     parse_c_struct = namespace['parse_c_struct']
     generate_cython_wrapper = namespace['generate_cython_wrapper']
 
+    # Détection de la plateforme
+    SYSTEM = platform.system().lower()  # 'windows', 'linux', 'darwin' pour macOS
+    
     # Use environment variables for external paths
     MUMPS_INCLUDE_DIR = os.environ.get('MUMPS_INC', '/usr/include')
     MUMPS_LIB_DIR = os.environ.get('MUMPS_LIB', '/usr/lib')
+
+    # Platform-specific default solvers
+    if SYSTEM == 'windows':  # Includes MSYS2 on Windows
+        default_solvers = 'mumps-dmo'  # Example: double precision MUMPS (adjust based on your MSYS2 libs)
+    else:
+        default_solvers = 'dmumps'  # Default for Unix-like systems
+    
     mumps_solvers = os.environ.get('MUMPS_SOLVERS', 'dmumps').split(',')
     mumps_solvers = [s.strip() for s in mumps_solvers if s.strip()] or ['dmumps']
 
@@ -157,7 +169,7 @@ def get_ext_modules():
     # Check for solver libraries
     for solver in mumps_solvers:
         lib_found = False
-        for ext in ['.so', '.a']:
+        for ext in ['.a', '.dll.a'] if SYSTEM == 'windows' else ['.so', '.a']:
             lib_file = os.path.join(MUMPS_LIB_DIR, f'lib{solver}{ext}')
             if os.path.exists(lib_file):
                 lib_found = True
@@ -188,12 +200,14 @@ def get_ext_modules():
         f.write(cython_code)
 
     # Define the extension with external paths
+    extra_link_args = ['-Wl,--allow-multiple-definition'] if SYSTEM != 'windows' else []
     return [Extension('mumps4py._mumps_wrapper',
                       sources=[output_file],
                       include_dirs=[MUMPS_INCLUDE_DIR],
                       library_dirs=[MUMPS_LIB_DIR],
                       libraries=mumps_solvers + ['mumps_common'],
-                      runtime_library_dirs=[MUMPS_LIB_DIR] if sys.platform != 'win32' else None)]
+                      runtime_library_dirs=[MUMPS_LIB_DIR] if sys.platform != 'win32' else None,
+                      extra_link_args=extra_link_args if SYSTEM != 'windows' else None)]
 
 # --------------------------------------------------------------------
 # Custom Commands
@@ -240,4 +254,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

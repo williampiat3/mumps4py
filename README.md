@@ -1,9 +1,13 @@
-
 # MUMPS4PY  
 Python Interface for the MUMPS Solver  
 
 ## Overview  
 MUMPS4PY is a Python wrapper for the **MUltifrontal Massively Parallel Solver (MUMPS)**, enabling efficient sparse matrix computations with parallel processing. It provides a high-performance interface for solving sparse linear systems using **MPI-based parallelism**.  
+
+## Platform-Specific Installation Guides
+- **Linux (Ubuntu)**: See instructions below.
+- **Windows**: See [docs/install_windows.md](docs/install_windows.md).
+- **macOS**: See [docs/install_macos.md](docs/install_macos.md).
 
 ## Dependencies  
 To use MUMPS4PY, you need:  
@@ -11,6 +15,9 @@ To use MUMPS4PY, you need:
 - **MPI** (`mpich` or `openmpi`)  
 - **Python** 3.5+  
 - **NumPy**, **mpi4py**, and **SciPy**  
+- Note on MUMPS Installation:
+     - If you install MUMPS via apt (e.g., sudo apt install `libmumps-ptscotch-dev` as shown below), shared libraries are included, and you can follow this README directly.
+     - If you download MUMPS from the official website (mumps-solver.org), you must build the shared libraries manually (e.g., `libdmumps.so`). See [docs/build_shared_libs.md](docs/build_shared_libs.md) for instructions on building shared libraries from the MUMPS source. Do not forgot to export all MUMPS library dependencies (eg. `libpord.so`, `libmetis.so`, etc).
 
 ### Installing MUMPS (Ubuntu)  
 ```bash
@@ -55,7 +62,6 @@ source ~/.bashrc
 git clone https://github.com/imadki/mumps4py.git
 cd mumps4py
 python setup.py build_ext --inplace
-
 ```
 ### Install globaly
 
