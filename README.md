@@ -15,7 +15,7 @@ To use MUMPS4PY, you need:
 - **MPI** (`mpich` or `openmpi`)  
 - **Python** 3.5+  
 - **NumPy**, **mpi4py**, and **SciPy**  
-- Note on MUMPS Installation:
+Note on MUMPS Installation:
      - If you install MUMPS via apt (e.g., sudo apt install `libmumps-ptscotch-dev` as shown below), shared libraries are included, and you can follow this README directly.
      - If you download MUMPS from the official website (mumps-solver.org), you must build the shared libraries manually (e.g., `libdmumps.so`). See [docs/build_shared_libs.md](docs/build_shared_libs.md) for instructions on building shared libraries from the MUMPS source. Do not forgot to export all MUMPS library dependencies (eg. `libpord.so`, `libmetis.so`, etc).
 

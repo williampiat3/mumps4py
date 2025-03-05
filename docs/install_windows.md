@@ -25,7 +25,7 @@ pip install numpy mpi4py scipy
 3. Install a Fortran compiler (e.g., gfortran via MSYS2):
 
 ```bash
-pacman -S mingw-w64-x86_64-gcc-fortran  # If using MSYS2
+pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-libfortran mingw-w64-x86_64-ninja mingw-w64-x86_64-metis mingw-w64-x86_64-scotch # If using MSYS2
 ```
 
 4. Use CMake to configure and build:
