@@ -84,7 +84,8 @@ metadata = {
     "name": "mumps4py",
     "version": "0.1.0",
     "description": "MUMPS for Python",
-    "long_description": open(os.path.join(topdir, 'DESCRIPTION.rst')).read() if os.path.exists(os.path.join(topdir, 'DESCRIPTION.rst')) else "A Python interface to the MUMPS solver library",
+    "long_description": open(os.path.join(topdir, 'DESCRIPTION.rst')).read() if \
+    os.path.exists(os.path.join(topdir, 'DESCRIPTION.rst')) else "A Python interface to the MUMPS solver library",
     "keywords": ['MUMPS', 'solver', 'MPI'],
     "classifiers": ['Development Status :: 3 - Alpha'],
     "url": "https://github.com/imadki/mumps4py",
@@ -150,7 +151,7 @@ def get_ext_modules():
     MUMPS_LIB_DIR = os.environ.get('MUMPS_LIB', '/usr/lib')
 
     mumps_solvers = os.environ.get('MUMPS_SOLVERS', 'dmumps').split(',')
-    mumps_solvers = [s.strip() for s in mumps_solvers if s.strip()] or ['dmumps']
+    mumps_libraries = mumps_solvers = [s.strip() for s in mumps_solvers if s.strip()] or ['dmumps']
 
     # Map solver names to MSYS2-style names if needed
     solver_map = {
@@ -159,7 +160,7 @@ def get_ext_modules():
         'smumps': 'mumps-sso',  # Single precision, sequential
         'zmumps': 'mumps-zso',  # Complex double precision, sequential
     }
-    mumps_libraries = mumps_solvers
+
     # Adjust solver names for MSYS2 (e.g., dmumps -> dso)
     if SYSTEM == 'windows':
         mumps_libraries = [solver_map.get(solver, solver) for solver in mumps_solvers]
@@ -205,25 +206,6 @@ def get_ext_modules():
     with open(output_file, 'w') as f:
         f.write(cython_code)
 
-    '''
-    # Define the extension
-    extra_libs = ['mumps_common_seq', 'mumps_pord']  # Adjust for MSYS2 naming
-    if sys.platform == 'win32':
-        libraries = [f'mumps-{solver}' for solver in mumps_libraries] + extra_libs
-        extra_link_args = ['-Wl,--allow-multiple-definition']  # Handle potential linking issues
-    else:
-        libraries = mumps_solvers + extra_libs
-        runtime_library_dirs = [MUMPS_LIB_DIR]
-        extra_link_args = []
-
-    return [Extension('mumps4py._mumps_wrapper',
-                      sources=[output_file],
-                      include_dirs=[MUMPS_INCLUDE_DIR],
-                      library_dirs=[MUMPS_LIB_DIR],
-                      libraries=libraries,
-                      extra_link_args=extra_link_args,
-                      runtime_library_dirs=runtime_library_dirs if sys.platform != 'win32' else None)]
-    '''
     # Define the extension with external paths
     extra_link_args = ['-Wl,--allow-multiple-definition'] if SYSTEM != 'windows' else []
     return [Extension('mumps4py._mumps_wrapper',
