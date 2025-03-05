@@ -14,7 +14,7 @@ from setuptools.command.build import build
 from setuptools.command.build_ext import build_ext
 from setuptools.command.install import install
 from setuptools.command.sdist import sdist
-from distutils import log  # ✅ Fix: Use distutils.log
+from distutils import log  #Fix: Use distutils.log
 
 try:
     import setuptools
@@ -93,7 +93,7 @@ metadata = {
     "requires": ['numpy', 'mpi4py', 'scipy'],
 }
 
-CYTHON_VERSION = '0.29'
+CYTHON_VERSION = '0.29.26'
 
 # --------------------------------------------------------------------
 # Helper Functions
@@ -149,15 +149,21 @@ def get_ext_modules():
     MUMPS_INCLUDE_DIR = os.environ.get('MUMPS_INC', '/usr/include')
     MUMPS_LIB_DIR = os.environ.get('MUMPS_LIB', '/usr/lib')
 
-    # Platform-specific default solvers
-    if SYSTEM == 'windows':  # Includes MSYS2 on Windows
-        default_solvers = 'mumps-dmo'  # Example: double precision MUMPS (adjust based on your MSYS2 libs)
-    else:
-        default_solvers = 'dmumps'  # Default for Unix-like systems
-    
     mumps_solvers = os.environ.get('MUMPS_SOLVERS', 'dmumps').split(',')
     mumps_solvers = [s.strip() for s in mumps_solvers if s.strip()] or ['dmumps']
 
+    # Map solver names to MSYS2-style names if needed
+    solver_map = {
+        'cmumps': 'mumps-cso',  # Complex single precision, sequential
+        'dmumps': 'mumps-dso',  # Double precision, sequential
+        'smumps': 'mumps-sso',  # Single precision, sequential
+        'zmumps': 'mumps-zso',  # Complex double precision, sequential
+    }
+    mumps_libraries = mumps_solvers
+    # Adjust solver names for MSYS2 (e.g., dmumps -> dso)
+    if SYSTEM == 'windows':
+        mumps_libraries = [solver_map.get(solver, solver) for solver in mumps_solvers]
+    
     # Check for header files
     for solver in mumps_solvers:
         header_file = os.path.join(MUMPS_INCLUDE_DIR, f'{solver}_c.h')
@@ -167,7 +173,7 @@ def get_ext_modules():
             sys.exit(1)
 
     # Check for solver libraries
-    for solver in mumps_solvers:
+    for solver in mumps_libraries:
         lib_found = False
         for ext in ['.a', '.dll.a'] if SYSTEM == 'windows' else ['.so', '.a']:
             lib_file = os.path.join(MUMPS_LIB_DIR, f'lib{solver}{ext}')
@@ -199,14 +205,33 @@ def get_ext_modules():
     with open(output_file, 'w') as f:
         f.write(cython_code)
 
+    '''
+    # Define the extension
+    extra_libs = ['mumps_common_seq', 'mumps_pord']  # Adjust for MSYS2 naming
+    if sys.platform == 'win32':
+        libraries = [f'mumps-{solver}' for solver in mumps_libraries] + extra_libs
+        extra_link_args = ['-Wl,--allow-multiple-definition']  # Handle potential linking issues
+    else:
+        libraries = mumps_solvers + extra_libs
+        runtime_library_dirs = [MUMPS_LIB_DIR]
+        extra_link_args = []
+
+    return [Extension('mumps4py._mumps_wrapper',
+                      sources=[output_file],
+                      include_dirs=[MUMPS_INCLUDE_DIR],
+                      library_dirs=[MUMPS_LIB_DIR],
+                      libraries=libraries,
+                      extra_link_args=extra_link_args,
+                      runtime_library_dirs=runtime_library_dirs if sys.platform != 'win32' else None)]
+    '''
     # Define the extension with external paths
     extra_link_args = ['-Wl,--allow-multiple-definition'] if SYSTEM != 'windows' else []
     return [Extension('mumps4py._mumps_wrapper',
                       sources=[output_file],
                       include_dirs=[MUMPS_INCLUDE_DIR],
                       library_dirs=[MUMPS_LIB_DIR],
-                      libraries=mumps_solvers + ['mumps_common'],
-                      runtime_library_dirs=[MUMPS_LIB_DIR] if sys.platform != 'win32' else None,
+                      libraries=mumps_libraries + ['mumps_common'],
+                      runtime_library_dirs=[MUMPS_LIB_DIR] if SYSTEM != "windows" else None,
                       extra_link_args=extra_link_args if SYSTEM != 'windows' else None)]
 
 # --------------------------------------------------------------------
