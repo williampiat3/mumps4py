@@ -14,7 +14,10 @@ if system in ["complex64", "complex128"]:
 solver = MumpsSolver(verbose=False, system=system)
 
 
-n = 5
+if rank == 0:
+    n = 5
+else:
+    n = None
 irn = np.array([0,1,3,4,1,0,4,2,1,2,0,2], dtype=np.int32)
 jcn = np.array([1,2,2,4,0,0,1,3,4,1,2,2], dtype=np.int32)
 a = np.array([3.0,-3.0,2.0,1.0,3.0,2.0,4.0,2.0,6.0,-1.0,4.0,1.0], dtype=dtype)

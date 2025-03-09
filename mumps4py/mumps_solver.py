@@ -235,7 +235,7 @@ class MumpsSolver:
         data_loc : local array
             The matrix entries.
         n : int
-            The matrix dimension.
+            The matrix dimension. (set by the rank 0)
         """
         assert ir_loc.shape[0] == ic_loc.shape[0] == data_loc.shape[0]
         if self.comm.Get_rank() == 0:
