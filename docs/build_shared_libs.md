@@ -42,7 +42,7 @@ make d  # For dmumps
 make all # For all libs
 ```
 
-3. Build Shared Libraries
+#### 3. Build Shared Libraries
 - Add this rule into the `Makefile` to create the shared libraries
 
 ```makefile
@@ -69,3 +69,16 @@ make shared_libs
 ls lib/
 # Output: libdmumps.a libdmumps.so libpord.a libpord.so ...
 ```
+
+## MUMPS >= 5.6.0
+
+```bash
+make dshare
+```
+or
+
+```bash
+make allshared
+```
+
+
