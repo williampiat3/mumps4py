@@ -1,4 +1,4 @@
-# Building Shared Libraries for MUMPS 
+# Building Shared Libraries for MUMPS < 5.6.0
 This guide explains how to build shared libraries (e.g., `libdmumps.so`) from the MUMPS source code, which are required for certain Python wrappers like MUMPS4PY when dynamic linking is preferred. Shared libraries are built in addition to the static libraries (`.a` files) that MUMPS compiles by default.
 
 
