@@ -56,7 +56,6 @@ $(libdir)/lib%.so: $(libdir)/lib%.a
 
 ***Replace $(LIBPAR) by $(LIBSEQ) if you are running sequential version of MUMPS***
 
-
 - Create shared libraries
 
 ```bash
@@ -71,7 +70,15 @@ ls lib/
 ```
 
 ## MUMPS >= 5.6.0
-
+- In case you get an error related to blas when running mumps4py examples, replace
+```bash
+LIBS = $(LIBPAR)
+```
+by
+```bash
+LIBS = $(LIBPAR) $(LIBBLAS) 
+```
+- Then
 ```bash
 make dshare
 ```
