@@ -4,6 +4,13 @@ Python Interface for the MUMPS Solver
 ## Overview  
 MUMPS4PY is a Python wrapper for the **MUltifrontal Massively Parallel Solver (MUMPS)**, enabling efficient sparse matrix computations with parallel processing. It provides a high-performance interface for solving sparse linear systems using **MPI-based parallelism**.  
 
+<p align="center">
+  <img src="docs/data/CvsP_2D.png" alt="HPC" width="48%">
+  <img src="docs/data/CvsP_3D.png" alt="HPC" width="48%">
+</p>
+
+You can find more details, benchmarks, and examples in [Benchmarks](docs/Mumps4py_Benchmarks.pdf).
+
 ## Platform-Specific Installation Guides
 - **Linux (Ubuntu)**: See instructions below.
 - **Windows**: See [docs/install_windows.md](docs/install_windows.md).
