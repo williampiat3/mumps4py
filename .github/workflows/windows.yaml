@@ -1,0 +1,82 @@
+name: CI MUMPS4PY (Windows)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+
+    env:
+      MUMPS_SOLVERS: dmumps
+      MUMPS_ROOT: ${{ github.workspace }}\mumps
+      MUMPS_INC: ${{ github.workspace }}\mumps\include
+      MUMPS_LIB: ${{ github.workspace }}\mumps\lib
+
+    steps:
+    - name: Setup MSYS2 with required packages
+      uses: msys2/setup-msys2@v2
+      with:
+        update: true
+        install: >-
+          mingw-w64-x86_64-gcc-fortran
+          mingw-w64-x86_64-cmake
+          mingw-w64-x86_64-make
+          mingw-w64-x86_64-ninja
+          mingw-w64-x86_64-lapack
+          mingw-w64-x86_64-openblas
+          mingw-w64-x86_64-python
+          mingw-w64-x86_64-python-pip
+          mingw-w64-x86_64-python-numpy
+          mingw-w64-x86_64-python-scipy
+          mingw-w64-x86_64-python-mpi4py
+          mingw-w64-x86_64-openmpi
+
+    - name: Add MSYS2 MinGW64 to PATH
+      shell: bash
+      run: echo "$MSYS2_PATH/mingw64/bin" >> $GITHUB_PATH
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Download and extract MUMPS
+      shell: msys2 {0}
+      run: |
+        curl -L -o mumps.tgz http://mumps.enseeiht.fr/MUMPS_5.5.1.tar.gz
+        tar -xf mumps.tgz
+        mv MUMPS_5.5.1 mumps
+
+    - name: Configure and build MUMPS (sequential)
+      shell: msys2 {0}
+      run: |
+        cd mumps
+        cp Make.inc/Makefile.gfortran.SEQ Makefile
+        mkdir -p lib include
+        make libseq
+        make all
+        cp include/*.h include/
+        cp lib/*.a lib/
+        cp libseq/*.a lib/
+
+    - name: Install Python dependencies
+      shell: msys2 {0}
+      run: |
+        pip install --upgrade pip
+        pip install cython pytest
+
+    - name: Build mumps4py
+      shell: msys2 {0}
+      run: |
+        python setup.py build_ext --inplace
+        pip install .
+
+    - name: Check mumps4py module
+      shell: msys2 {0}
+      run: python -c "import mumps4py; print(mumps4py.__file__)"
+
+    - name: Run mumps4py tests
+      shell: msys2 {0}
+      run: mpiexec -n 1 pytest -v
