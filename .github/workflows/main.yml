@@ -19,11 +19,16 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libopenmpi-dev openmpi-bin \
-              libmumps-ptscotch-dev libscalapack-mpi-dev \
+      - name: Install system-level dependencies
+          run: |
+            sudo apt-get update
+            sudo apt-get install -y \
+              libmetis-dev libparmetis-dev \
+              libscotch-dev libptscotch-dev \
+              libatlas-base-dev \
+              liblapack-dev \
+              libscalapack-openmpi-dev \
+              openmpi-bin libopenmpi-dev \
               gfortran cmake
 
       - name: Set up Python
