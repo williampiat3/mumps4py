@@ -1,0 +1,45 @@
+name: Test MUMPS4PY
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    env:
+      MUMPS_SOLVERS: "dmumps"  # ou "cmumps" pour test_solve_single
+      MUMPS_INC: /usr/include
+      MUMPS_LIB: /usr/lib
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libopenmpi-dev openmpi-bin \
+              libmumps-seq-dev libmumps-common-dev libscalapack-mpi-dev \
+              gfortran cmake
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy mpi4py scipy cython pytest
+
+      - name: Build Cython wrapper
+        run: |
+          python setup.py build_ext --inplace
+
+      - name: Run tests with MPI
+        run: |
+          mpirun -n 1 pytest -v
