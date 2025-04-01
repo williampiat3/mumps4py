@@ -21,11 +21,11 @@ jobs:
       uses: msys2/setup-msys2@v2
       with:
         update: true
-        install: >-
+        install: |
           mingw-w64-x86_64-gcc-fortran
           mingw-w64-x86_64-cmake
           mingw-w64-x86_64-make
-          mmingw-w64-x86_64-ninja
+          mingw-w64-x86_64-ninja
           mingw-w64-x86_64-lapack
           mingw-w64-x86_64-openblas
           mingw-w64-x86_64-python
@@ -33,13 +33,13 @@ jobs:
           mingw-w64-x86_64-python-numpy
           mingw-w64-x86_64-python-scipy
           mingw-w64-x86_64-python-mpi4py
-          mingw-w64-x86_64-msmpi  # Replaced openmpi with msmpi
+          mingw-w64-x86_64-msmpi
 
     - name: Add MSYS2 MinGW64 to PATH
       shell: bash
       run: |
         echo "C:/msys64/mingw64/bin" >> $GITHUB_PATH
-        echo "C:/Program Files (x86)/Microsoft SDKs/MPI" >> $GITHUB_PATH  # Add MSMPI path
+        echo "C:/Program Files (x86)/Microsoft SDKs/MPI" >> $GITHUB_PATH
 
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -47,7 +47,7 @@ jobs:
     - name: Download and extract MUMPS
       shell: msys2 {0}
       run: |
-        curl -L -o mumps.tgz http://mumps.enseeiht.fr/MUMPS_5.6.2.tar.gz  # Updated to 5.6.2
+        curl -L -o mumps.tgz http://mumps.enseeiht.fr/MUMPS_5.6.2.tar.gz
         tar -xf mumps.tgz
         mv MUMPS_5.6.2 mumps
 
@@ -60,9 +60,9 @@ jobs:
         echo "LIBLAPACK = -llapack" >> Makefile.inc
         echo "LPORDDIR = $(topdir)/PORD/lib/" >> Makefile.inc
         echo "IPORD = -lpord" >> Makefile.inc
-        echo "LMETISDIR = " >> Makefile.inc  # No METIS for simplicity
+        echo "LMETISDIR = " >> Makefile.inc
         echo "IMETIS = " >> Makefile.inc
-        echo "SCOTCHDIR = " >> Makefile.inc  # No Scotch for simplicity
+        echo "SCOTCHDIR = " >> Makefile.inc
         echo "ISCOTCH = " >> Makefile.inc
         echo "CC = gcc" >> Makefile.inc
         echo "FC = gfortran" >> Makefile.inc
@@ -70,7 +70,7 @@ jobs:
         echo "OPTF = -O3" >> Makefile.inc
         echo "OPTC = -O3" >> Makefile.inc
         mkdir -p lib include
-        make all  # Build with MSMPI support implicitly via mpi4py
+        make all
         cp include/*.h include/
         cp lib/*.a lib/
 
@@ -93,4 +93,4 @@ jobs:
     - name: Run mumps4py tests
       shell: msys2 {0}
       run: |
-        mpiexec -n 2 pytest -v  # Use 2 processes for parallel testing
+        mpiexec -n 2 pytest -v
