@@ -25,7 +25,7 @@ jobs:
           mingw-w64-x86_64-gcc-fortran
           mingw-w64-x86_64-cmake
           mingw-w64-x86_64-make
-          mingw-w64-x86_64-ninja
+          mmingw-w64-x86_64-ninja
           mingw-w64-x86_64-lapack
           mingw-w64-x86_64-openblas
           mingw-w64-x86_64-python
@@ -33,11 +33,13 @@ jobs:
           mingw-w64-x86_64-python-numpy
           mingw-w64-x86_64-python-scipy
           mingw-w64-x86_64-python-mpi4py
-          mingw-w64-x86_64-openmpi
+          mingw-w64-x86_64-msmpi  # Replaced openmpi with msmpi
 
     - name: Add MSYS2 MinGW64 to PATH
       shell: bash
-      run: echo "$MSYS2_PATH/mingw64/bin" >> $GITHUB_PATH
+      run: |
+        echo "C:/msys64/mingw64/bin" >> $GITHUB_PATH
+        echo "C:/Program Files (x86)/Microsoft SDKs/MPI" >> $GITHUB_PATH  # Add MSMPI path
 
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -45,26 +47,37 @@ jobs:
     - name: Download and extract MUMPS
       shell: msys2 {0}
       run: |
-        curl -L -o mumps.tgz http://mumps.enseeiht.fr/MUMPS_5.5.1.tar.gz
+        curl -L -o mumps.tgz http://mumps.enseeiht.fr/MUMPS_5.6.2.tar.gz  # Updated to 5.6.2
         tar -xf mumps.tgz
-        mv MUMPS_5.5.1 mumps
+        mv MUMPS_5.6.2 mumps
 
-    - name: Configure and build MUMPS (sequential)
+    - name: Configure and build MUMPS with MSMPI
       shell: msys2 {0}
       run: |
         cd mumps
-        cp Make.inc/Makefile.gfortran.SEQ Makefile
+        cp Make.inc/Makefile.inc.generic Makefile.inc
+        echo "LIBBLAS = -lopenblas" >> Makefile.inc
+        echo "LIBLAPACK = -llapack" >> Makefile.inc
+        echo "LPORDDIR = $(topdir)/PORD/lib/" >> Makefile.inc
+        echo "IPORD = -lpord" >> Makefile.inc
+        echo "LMETISDIR = " >> Makefile.inc  # No METIS for simplicity
+        echo "IMETIS = " >> Makefile.inc
+        echo "SCOTCHDIR = " >> Makefile.inc  # No Scotch for simplicity
+        echo "ISCOTCH = " >> Makefile.inc
+        echo "CC = gcc" >> Makefile.inc
+        echo "FC = gfortran" >> Makefile.inc
+        echo "FL = gfortran" >> Makefile.inc
+        echo "OPTF = -O3" >> Makefile.inc
+        echo "OPTC = -O3" >> Makefile.inc
         mkdir -p lib include
-        make libseq
-        make all
+        make all  # Build with MSMPI support implicitly via mpi4py
         cp include/*.h include/
         cp lib/*.a lib/
-        cp libseq/*.a lib/
 
     - name: Install Python dependencies
       shell: msys2 {0}
       run: |
-        pip install --upgrade pip
+        python -m pip install --upgrade pip
         pip install cython pytest
 
     - name: Build mumps4py
@@ -79,4 +92,5 @@ jobs:
 
     - name: Run mumps4py tests
       shell: msys2 {0}
-      run: mpiexec -n 1 pytest -v
+      run: |
+        mpiexec -n 2 pytest -v  # Use 2 processes for parallel testing
