@@ -23,7 +23,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libopenmpi-dev openmpi-bin \
-              libmumps-seq-dev libmumps-common-dev libscalapack-mpi-dev \
+              libmumps-ptscotch-dev libscalapack-mpi-dev \
               gfortran cmake
 
       - name: Set up Python
