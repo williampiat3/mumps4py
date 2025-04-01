@@ -24,5 +24,6 @@ def test_solve_single():
     solver.set_rhs_centralized(rhs)
     solver._mumps_call(3)
 
-    assert np.allclose(rhs, [np.complex64(1), np.complex64(2), np.complex64(3),
-                             np.complex64(4), np.complex64(5)], atol=1e-10)
+    if MPI.COMM_WORLD.Get_rank()==0:
+        assert np.allclose(rhs, [np.complex64(1), np.complex64(2), np.complex64(3),
+                                 np.complex64(4), np.complex64(5)], atol=1e-10)

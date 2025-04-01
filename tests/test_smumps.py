@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 import os
+from mpi4py import MPI
 from mumps4py.mumps_solver import MumpsSolver
 
 @pytest.mark.skipif("zmumps" not in os.getenv("MUMPS_SOLVERS", "").split(","), reason="zmumps not selected")
@@ -22,4 +23,5 @@ def test_solve_single():
     solver.set_rhs_centralized(rhs)
     solver._mumps_call(3)
 
-    assert np.allclose(rhs, [1, 2, 3, 4, 5], atol=1e-10)
+    if MPI.COMM_WORLD.Get_rank()==0:
+        assert np.allclose(rhs, [1, 2, 3, 4, 5], atol=1e-10)
