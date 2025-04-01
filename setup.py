@@ -14,7 +14,7 @@ from setuptools.command.build import build
 from setuptools.command.build_ext import build_ext
 from setuptools.command.install import install
 from setuptools.command.sdist import sdist
-from distutils import log  #Fix: Use distutils.log
+#from distutils import log  #Fix: Use distutils.log
 
 try:
     import setuptools
@@ -91,7 +91,7 @@ metadata = {
     "url": "https://github.com/imadki/mumps4py",
     "download_url": "https://pypi.io/packages/source/m/mumps4py/mumps4py-0.1.0.tar.gz",
     "provides": ['mumps4py'],
-    "requires": ['numpy', 'mpi4py', 'scipy'],
+    "requires": ['numpy', 'mpi4py'],
     "classifiers": [
     'Development Status :: 3 - Alpha',
     'Programming Language :: Python :: 3',
@@ -128,7 +128,7 @@ def run_cython(source, includes=(), force=False):
     if not check_cython(CYTHON_VERSION):
         raise DistutilsError(f"Cython>={CYTHON_VERSION} is required.")
 
-    log.info(f"Cythonizing '{source}' -> '{target}'")
+    #log.info(f"Cythonizing '{source}' -> '{target}'")
     cythonize([source], include_path=includes, force=force)
 
 # --------------------------------------------------------------------
@@ -249,7 +249,7 @@ def run_setup():
             'clean': CleanCommand,
             'sdist': sdist,
         },
-        install_requires=['numpy', 'mpi4py', 'scipy', f'Cython>={CYTHON_VERSION}'],
+        install_requires=['numpy', 'mpi4py', f'Cython>={CYTHON_VERSION}'],
         zip_safe=False,
         **metadata
     )
