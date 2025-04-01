@@ -7,7 +7,7 @@ This document provides instructions for building and running the MUMPS4PY Docker
 - To build the Docker image from the Dockerfile in your MUMPS4PY project directory:
 ```bash
 docker build -f Dockerfile -t mumps-test .
-
+```
 
 - To execute the default test suite with pytest using MPI:
 ```bash
