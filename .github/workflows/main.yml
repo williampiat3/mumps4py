@@ -37,11 +37,12 @@ jobs:
           python3 -m pip install --upgrade pip
           pip install cython numpy scipy mpi4py pytest
 
-      - name: Build MUMPS (custom)
+      - name: Set MUMPS env
         run: |
-          chmod +x scripts/build_mumps.sh
-          ./scripts/build_mumps.sh
-
+          echo "MUMPS_SOLVERS=dmumps,cmumps,zmumps,smumps" >> $GITHUB_ENV
+          echo "MUMPS_INC=/usr/include" >> $GITHUB_ENV
+          echo "MUMPS_LIB=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
+     
       - name: Build mumps4py
         run: |
           python setup.py build_ext --inplace
