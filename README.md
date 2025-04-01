@@ -15,6 +15,7 @@ You can find more details, benchmarks, and examples in [Benchmarks](docs/Mumps4p
 - **Linux (Ubuntu)**: See instructions below.
 - **Windows**: See [docs/install_windows.md](docs/install_windows.md).
 - **macOS**: See [docs/install_macos.md](docs/install_macos.md).
+- **Docker**: See [docs/docker.md](docs/docker.md).
 
 ## Dependencies  
 To use MUMPS4PY, you need:  
