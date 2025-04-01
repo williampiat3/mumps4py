@@ -92,6 +92,7 @@ metadata = {
     "download_url": "https://pypi.io/packages/source/m/mumps4py/mumps4py-0.1.0.tar.gz",
     "provides": ['mumps4py'],
     "requires": ['numpy', 'mpi4py', 'scipy'],
+    "license": "MIT",
 }
 
 CYTHON_VERSION = '0.29.26'
