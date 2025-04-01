@@ -1,0 +1,3 @@
+include README.md
+recursive-include mumps4py *.pyx *.pxd *.h
+recursive-include utils *.py

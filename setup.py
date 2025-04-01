@@ -84,8 +84,8 @@ metadata = {
     "name": "mumps4py",
     "version": "0.1.0",
     "description": "MUMPS for Python",
-    "long_description": open(os.path.join(topdir, 'DESCRIPTION.rst')).read() if \
-    os.path.exists(os.path.join(topdir, 'DESCRIPTION.rst')) else "A Python interface to the MUMPS solver library",
+    "long_description": open(os.path.join(topdir, 'README.md')).read() if \
+    os.path.exists(os.path.join(topdir, 'README.md')) else "A Python interface to the MUMPS solver library",
     "keywords": ['MUMPS', 'solver', 'MPI'],
     "classifiers": ['Development Status :: 3 - Alpha'],
     "url": "https://github.com/imadki/mumps4py",
