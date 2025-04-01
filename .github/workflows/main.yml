@@ -12,7 +12,7 @@ jobs:
 
     env:
       MUMPS_SOLVERS: dmumps,zmumps
-      MUMPS_INC: /usr/include/mumps
+      MUMPS_INC: /usr/include
       MUMPS_LIB: /usr/lib/x86_64-linux-gnu
 
     steps:
