@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      MUMPS_SOLVERS: dmumps,zmumps
+      MUMPS_SOLVERS: dmumps,zmumps,smumps,cmumps
       MUMPS_INC: /usr/include
       MUMPS_LIB: /usr/lib/x86_64-linux-gnu
 
