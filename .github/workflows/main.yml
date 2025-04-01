@@ -12,8 +12,8 @@ jobs:
 
     env:
       MUMPS_SOLVERS: dmumps,zmumps
-      MUMPS_INC: ${{ github.workspace }}/mumps/include
-      MUMPS_LIB: ${{ github.workspace }}/mumps/lib
+      MUMPS_INC: /usr/include/mumps
+      MUMPS_LIB: /usr/lib/x86_64-linux-gnu
 
     steps:
       - name: Checkout repo
@@ -30,6 +30,7 @@ jobs:
             libmetis-dev libparmetis-dev \
             libscotch-dev libptscotch-dev \
             libatlas-base-dev \
+            libmumps-seq-dev \
             python3-dev python3-pip
 
       - name: Install Python deps
@@ -37,12 +38,6 @@ jobs:
           python3 -m pip install --upgrade pip
           pip install cython numpy scipy mpi4py pytest
 
-      - name: Set MUMPS env
-        run: |
-          echo "MUMPS_SOLVERS=dmumps,cmumps,zmumps,smumps" >> $GITHUB_ENV
-          echo "MUMPS_INC=/usr/include" >> $GITHUB_ENV
-          echo "MUMPS_LIB=/usr/lib/x86_64-linux-gnu" >> $GITHUB_ENV
-     
       - name: Build mumps4py
         run: |
           python setup.py build_ext --inplace
