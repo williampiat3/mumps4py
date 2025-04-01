@@ -82,17 +82,21 @@ topdir = os.path.abspath(os.path.dirname(__file__))
 
 metadata = {
     "name": "mumps4py",
-    "version": "0.1.0",
+    "version": "0.1.1rc0",
     "description": "MUMPS for Python",
     "long_description": open(os.path.join(topdir, 'README.md')).read() if \
     os.path.exists(os.path.join(topdir, 'README.md')) else "A Python interface to the MUMPS solver library",
+    "long_description_content_type":"text/markdown", 
     "keywords": ['MUMPS', 'solver', 'MPI'],
-    "classifiers": ['Development Status :: 3 - Alpha'],
     "url": "https://github.com/imadki/mumps4py",
     "download_url": "https://pypi.io/packages/source/m/mumps4py/mumps4py-0.1.0.tar.gz",
     "provides": ['mumps4py'],
     "requires": ['numpy', 'mpi4py', 'scipy'],
-    "license": "MIT",
+    "classifiers": [
+    'Development Status :: 3 - Alpha',
+    'Programming Language :: Python :: 3',
+    'Topic :: Scientific/Engineering :: Mathematics'],
+
 }
 
 CYTHON_VERSION = '0.29.26'
@@ -148,9 +152,13 @@ def get_ext_modules():
     SYSTEM = platform.system().lower()  # 'windows', 'linux', 'darwin' pour macOS
     
     # Use environment variables for external paths
-    MUMPS_INCLUDE_DIR = os.environ.get('MUMPS_INC', '/usr/include')
-    MUMPS_LIB_DIR = os.environ.get('MUMPS_LIB', '/usr/lib')
+    MUMPS_INCLUDE_DIR = os.environ.get('MUMPS_INC', "")
+    MUMPS_LIB_DIR = os.environ.get('MUMPS_LIB', "")
 
+    if not MUMPS_INCLUDE_DIR or not MUMPS_LIB_DIR:
+        raise RuntimeError("MUMPS_INC and MUMPS_LIB must be set before using mumps4py.")
+
+    
     mumps_solvers = os.environ.get('MUMPS_SOLVERS', 'dmumps').split(',')
     mumps_libraries = mumps_solvers = [s.strip() for s in mumps_solvers if s.strip()] or ['dmumps']
 
