@@ -35,6 +35,13 @@ jobs:
         echo "PATH after update: $PATH"
         which $GFORTRAN_BIN
 
+    # Explicitly install a compatible CMake version
+    - name: Install compatible CMake version
+      run: |
+        brew install cmake@3.19  # Pin to 3.19, known to work with older projects
+        brew link cmake@3.19 --force
+        cmake --version
+
     - name: Install METIS 5.1.0 from SourceForge
       run: |
         curl -L -o metis-5.1.0.tar.gz https://sourceforge.net/projects/openfoam-extend/files/foam-extend-3.0/ThirdParty/metis-5.1.0.tar.gz/download
@@ -81,10 +88,10 @@ jobs:
         echo "IMETIS = -I${METIS_DIR}/include" >> Makefile.inc
         echo "SONAMEOPT = " >> Makefile.inc
 
-        # Ta ligne demandée — on la garde telle quelle
+        # Replace -soname with -install_name for macOS
         find . -name "Makefile*" -exec sed -i '' 's/-soname/-install_name/g' {} \;
 
-        # Supprimer les options OpenMP et Scotch
+        # Remove OpenMP and Scotch options
         find . -name "Makefile*" -exec sed -i '' 's/-fopenmp//g' {} \;
         find . -name "Makefile*" -exec sed -i '' 's/-Xpreprocessor -fopenmp//g' {} \;
         find . -name "Makefile*" -exec sed -i '' 's/-Dscotch//g' {} \;
