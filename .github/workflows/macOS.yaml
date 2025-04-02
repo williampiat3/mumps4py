@@ -33,7 +33,7 @@ jobs:
         cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local
         make -j$(sysctl -n hw.ncpu)
         make install
-        cd ..
+        cd ../..
 
     - name: Install MUMPS 5.7.0 (COIN-OR)
       run: |
