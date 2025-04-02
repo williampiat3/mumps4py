@@ -12,8 +12,8 @@ jobs:
 
     env:
       MUMPS_SOLVERS: dmumps,zmumps,smumps,cmumps
-      MUMPS_INC: /usr/local/opt/brewsci-mumps/include
-      MUMPS_LIB: /usr/local/opt/brewsci-mumps/lib
+      MUMPS_INC: ${{ github.workspace }}/MUMPS_5.5.1/include
+      MUMPS_LIB: ${{ github.workspace }}/MUMPS_5.5.1/lib
 
     steps:
     - name: Checkout repository
@@ -22,26 +22,48 @@ jobs:
     - name: Install system packages
       run: |
         brew update
-        brew install gcc openblas lapack python cmake
+        brew install openblas lapack cmake metis
         
-        # D'abord installer METIS depuis le repo principal de Homebrew
-        brew install metis
-        
-        # Ensuite installer MUMPS en ignorant les dépendances (puisqu'on a déjà METIS)
-        brew tap brewsci/num
-        brew install brewsci-mumps --ignore-dependencies || brew install brewsci-mumps
-        
-        # Vérification que les bibliothèques sont bien installées
-        ls -l $(brew --prefix brewsci-mumps)/lib
-        
-        # Configurer gfortran
-        if ! command -v gfortran &> /dev/null; then
-          GFORTRAN_BIN=$(brew --prefix gcc)/bin/gfortran-$(brew list gcc | grep -oE '[0-9]+$' | head -1)
-          sudo ln -s $GFORTRAN_BIN /usr/local/bin/gfortran
-        fi
-
-        which gfortran
+        # Configure gfortran
+        GFORTRAN_BIN=$(brew --prefix gcc)/bin/gfortran-$(brew list gcc | grep -oE '[0-9]+$' | head -1)
+        sudo ln -sf $GFORTRAN_BIN /usr/local/bin/gfortran
         gfortran --version
+
+    - name: Install MUMPS manually
+      run: |
+        # Download MUMPS 5.5.1 (version stable)
+        curl -L https://coin-or-tools.github.io/ThirdParty-Mumps//MUMPS_5.7.3.tar.gz -o MUMPS_5.7.3.tar.gz
+        tar xzf MUMPS_5.5.1.tar.gz
+        
+        # Build MUMPS
+        cd MUMPS_5.5.1
+        cp Make.inc/Makefile.inc.generic.SEQ Makefile.inc
+        
+        # Update compiler and library settings
+        OPENBLAS_DIR=$(brew --prefix openblas)
+        METIS_DIR=$(brew --prefix metis)
+        
+        sed -i '' "
+          s/^CC *=.*/CC = gcc/;
+          s/^FC *=.*/FC = gfortran/;
+          s/^FL *=.*/FL = gfortran/;
+          s/^SCOTCHDIR *=.*//;
+          s/^ISCOTCH *=.*//;
+          s/^LSCOTCH *=.*//;
+        " Makefile.inc
+        
+        echo "LIBBLAS = -L${OPENBLAS_DIR}/lib -lopenblas" >> Makefile.inc
+        echo "LIBMETIS = -L${METIS_DIR}/lib -lmetis" >> Makefile.inc
+        echo "IMETIS = -I${METIS_DIR}/include" >> Makefile.inc
+        echo "OPTF = -fallow-argument-mismatch -O2" >> Makefile.inc  # Pour gfortran moderne
+        
+        make -j$(sysctl -n hw.ncpu) d z s c
+        
+        # Prepare include and lib directories
+        mkdir -p include lib
+        cp include/*.h include/
+        cp lib/*.a lib/
+        cp libseq/libmpiseq.a lib/
 
     - name: Install Python packages
       run: |
@@ -53,8 +75,7 @@ jobs:
         python setup.py build_ext --inplace
         pip install .
 
-    - name: Check mumps4py module
-      run: python -c "import mumps4py; print(mumps4py.__file__)"
-
-    - name: Run mumps4py tests
-      run: mpiexec -n 1 pytest -v
+    - name: Run tests
+      run: |
+        python -c "import mumps4py; print(f'MUMPS4PY successfully imported from {mumps4py.__file__}')"
+        mpiexec -n 1 pytest -v
