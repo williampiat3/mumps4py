@@ -19,30 +19,30 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install system packages + MPI
+    - name: Install system packages + ensure gfortran is accessible
       run: |
         brew update
-        brew install gcc openblas lapack cmake metis open-mpi
+        brew install gcc openblas lapack cmake metis
 
-        # Locate mpif90 (OpenMPI Fortran compiler)
-        MPIF90_PATH=$(which mpif90)
-        echo "Found mpif90: $MPIF90_PATH"
-        echo "PATH=$(dirname $MPIF90_PATH):$PATH" >> $GITHUB_ENV
+        # Locate gfortran binary (e.g., gfortran-13) and add to PATH
+        GFORTRAN_PATH=$(ls $(brew --prefix gcc)/bin/gfortran-* | head -n 1)
+        echo "Found gfortran binary: $GFORTRAN_PATH"
+        echo "PATH=$(dirname $GFORTRAN_PATH):$PATH" >> $GITHUB_ENV
 
-    - name: Install MUMPS 5.7.3 (MPI build with shared libs)
+    - name: Install MUMPS 5.7.3 (allshared build)
       run: |
         curl -L https://coin-or-tools.github.io/ThirdParty-Mumps/MUMPS_5.7.3.tar.gz -o MUMPS_5.7.3.tar.gz
         tar xzf MUMPS_5.7.3.tar.gz
         cd MUMPS_5.7.3
-        cp Make.inc/Makefile.inc.generic Makefile.inc
+        cp Make.inc/Makefile.inc.generic.SEQ Makefile.inc
 
         OPENBLAS_DIR=$(brew --prefix openblas)
         METIS_DIR=$(brew --prefix metis)
 
         sed -i '' "
-          s/^CC *=.*/CC = mpicc/;
-          s/^FC *=.*/FC = mpif90/;
-          s/^FL *=.*/FL = mpif90/;
+          s/^CC *=.*/CC = gcc/;
+          s/^FC *=.*/FC = gfortran/;
+          s/^FL *=.*/FL = gfortran/;
           s/^SCOTCHDIR *=.*//;
           s/^ISCOTCH *=.*//;
           s/^LSCOTCH *=.*//;
@@ -76,4 +76,4 @@ jobs:
     - name: Run tests
       run: |
         python -c "import mumps4py; print(f'MUMPS4PY successfully imported from {mumps4py.__file__}')"
-        mpiexec -n 2 pytest -v
+        mpiexec -n 1 pytest -v
