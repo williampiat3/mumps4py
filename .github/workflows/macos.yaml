@@ -1,0 +1,38 @@
+name: CI MUMPS4PY (macOS)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test-macos:
+    runs-on: macos-latest
+
+    env:
+      MUMPS_SOLVERS: dmumps,zmumps,smumps,cmumps
+      MUMPS_INC: /opt/homebrew/include  # ARM, ajustez si Intel
+      MUMPS_LIB: /opt/homebrew/lib      # ARM, ajustez si Intel
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        brew tap brewsci/num
+        brew install brewsci-mumps gcc openblas lapack python
+        pip3 install --upgrade pip
+        pip3 install numpy mpi4py cython pytest
+
+    - name: Build mumps4py
+      run: |
+        python3 setup.py build_ext --inplace
+        pip3 install .
+
+    - name: Check mumps4py module
+      run: python3 -c "import mumps4py; print(mumps4py.__file__)"
+
+    - name: Run mumps4py tests
+      run: mpiexec -n 2 pytest -v
