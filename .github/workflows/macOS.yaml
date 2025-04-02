@@ -77,7 +77,7 @@ jobs:
 
         # External libraries
         echo "LIBBLAS = -L$(brew --prefix openblas)/lib -lopenblas" >> Makefile.inc
-        echo "LIBMETIS = ${METIS_DIR}/lib/libmetis.a" >> Makefile.inc
+        echo "LIBMETIS = ${METIS_DIR}/lib" >> Makefile.inc
         echo "IMETIS = -I${METIS_DIR}/include" >> Makefile.inc
         echo "SONAMEOPT = " >> Makefile.inc
 
