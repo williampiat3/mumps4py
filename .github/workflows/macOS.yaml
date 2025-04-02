@@ -27,15 +27,19 @@ jobs:
         brew update
         brew install open-mpi openblas lapack cmake metis libomp gcc
 
-    - name: Link gfortran (if needed)
+    - name: Ensure gfortran is available
       run: |
         if ! command -v gfortran &> /dev/null; then
-          GFORTRAN_BIN=$(brew --prefix gcc)/bin/gfortran-$(brew list gcc | grep -oE '[0-9]+$' | head -1)
-          ln -s $GFORTRAN_BIN /usr/local/bin/gfortran || true
+          GFORTRAN_BIN=$(ls $(brew --prefix gcc)/bin/gfortran-* | head -n 1)
+          if [ -x "$GFORTRAN_BIN" ]; then
+            sudo ln -s $GFORTRAN_BIN /usr/local/bin/gfortran
+          else
+            echo "gfortran binary not found in brew gcc path"
+            exit 1
+          fi
         fi
         which gfortran
         gfortran --version
-
 
     - name: Install MUMPS 5.7.3 (parallel + shared with mpicc/mpif90)
       run: |
