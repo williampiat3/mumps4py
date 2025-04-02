@@ -12,8 +12,8 @@ jobs:
 
     env:
       MUMPS_SOLVERS: dmumps,zmumps,smumps,cmumps
-      MUMPS_INC: ${{ github.workspace }}/MUMPS_5.7.0/include
-      MUMPS_LIB: ${{ github.workspace }}/MUMPS_5.7.0/lib
+      MUMPS_INC: /usr/local/include
+      MUMPS_LIB: /usr/local/lib
 
     steps:
     - name: Checkout repository
@@ -22,37 +22,7 @@ jobs:
     - name: Install system packages
       run: |
         brew update
-        brew install gcc openblas lapack wget cmake python metis
-
-        # Create symlink to gfortran if needed
-        if ! command -v gfortran &> /dev/null; then
-          GFORTRAN_BIN=$(brew --prefix gcc)/bin/gfortran-$(brew list gcc | grep -oE '[0-9]+$' | head -1)
-          sudo ln -s $GFORTRAN_BIN /usr/local/bin/gfortran || true
-        fi
-
-        which gfortran
-        gfortran --version
-
-    - name: Install MUMPS 5.7.0 (COIN-OR)
-      run: |
-        curl -L -o mumps.tgz https://coin-or-tools.github.io/ThirdParty-Mumps/MUMPS_5.7.0.tar.gz
-        tar -xzf mumps.tgz
-        cd MUMPS_5.7.0
-        cp Make.inc/Makefile.inc.generic.SEQ Makefile.inc
-
-        sed -i '' 's/^CC *=.*/CC = gcc/' Makefile.inc
-        sed -i '' 's/^FC *=.*/FC = gfortran/' Makefile.inc
-        sed -i '' 's/^FL *=.*/FL = gfortran/' Makefile.inc
-
-        echo "LIBMETIS = -lmetis" >> Makefile.inc
-        echo "IMETIS = -lmetis" >> Makefile.inc
-
-        make -j$(sysctl -n hw.ncpu)
-        mkdir -p lib include
-        cp libseq/libseq.a lib/
-        cp lib/*mumps*.a lib/ || true
-        cp include/*.h include/ || true
-        cd ..
+        brew install openblas lapack wget cmake metis mumps
 
     - name: Install Python packages
       run: |
