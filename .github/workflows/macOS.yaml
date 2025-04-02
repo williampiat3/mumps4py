@@ -26,10 +26,16 @@ jobs:
       run: |
         brew update
         brew install open-mpi openblas lapack cmake metis libomp gcc
-        # Verify gfortran is installed
+
+    - name: Link gfortran (if needed)
+      run: |
+        if ! command -v gfortran &> /dev/null; then
+          GFORTRAN_BIN=$(brew --prefix gcc)/bin/gfortran-$(brew list gcc | grep -oE '[0-9]+$' | head -1)
+          ln -s $GFORTRAN_BIN /usr/local/bin/gfortran || true
+        fi
+        which gfortran
         gfortran --version
-        # Add gfortran to PATH (Homebrew installs it as part of gcc)
-        echo "$(brew --prefix gcc)/bin" >> $GITHUB_PATH
+
 
     - name: Install MUMPS 5.7.3 (parallel + shared with mpicc/mpif90)
       run: |
