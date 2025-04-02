@@ -33,8 +33,8 @@ jobs:
         sed -i '' 's/^CC *=.*/CC = gcc/' Makefile.inc
         sed -i '' 's/^FC *=.*/FC = gfortran/' Makefile.inc
         sed -i '' 's/^FL *=.*/FL = gfortran/' Makefile.inc
-        sed -i '' 's|^INCPAR *=.*|INCPAR = -I${{ github.workspace }}/metis-install/include|' Makefile.inc
-        sed -i '' 's|^LIBPAR *=.*|LIBPAR = -L${{ github.workspace }}/metis-install/lib -lmetis|' Makefile.inc
+        echo "LIBMETIS = -lmetis" >> Makefile.inc
+        echo "IMETIS = -lmetis" >> Makefile.inc
         make -j$(sysctl -n hw.ncpu)
         mkdir -p lib include
         cp libseq/libseq.a lib/
