@@ -13,57 +13,72 @@ jobs:
     env:
       MUMPS_SOLVERS: dmumps,zmumps,smumps,cmumps
       MUMPS_INC: ${{ github.workspace }}/MUMPS_5.7.3/include
-      MUMPS_LIB: ${{ github.workspace }}/MUMPS_5.7.3/lib
+      MUMPS_LIB: ${{ github.workflow }}/MUMPS_5.7.3/lib
+      LIBOMP_DIR: $(brew --prefix libomp)
+      OPENBLAS_DIR: $(brew --prefix openblas)
+      METIS_DIR: $(brew --prefix metis)
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install system packages
+    - name: Install system packages + OpenMPI + libomp + gfortran
       run: |
         brew update
-        brew install open-mpi openblas lapack cmake metis libomp
+        brew install open-mpi openblas lapack cmake metis libomp gcc
+        # Verify gfortran is installed
+        gfortran --version
+        # Add gfortran to PATH (Homebrew installs it as part of gcc)
+        echo "$(brew --prefix gcc)/bin" >> $GITHUB_PATH
 
-    - name: Install MUMPS 5.7.3 (parallel + shared, no SCOTCH)
+    - name: Install MUMPS 5.7.3 (parallel + shared with mpicc/mpif90)
       run: |
         curl -L https://coin-or-tools.github.io/ThirdParty-Mumps/MUMPS_5.7.3.tar.gz -o MUMPS_5.7.3.tar.gz
         tar xzf MUMPS_5.7.3.tar.gz
         cd MUMPS_5.7.3
         cp Make.inc/Makefile.debian.PAR Makefile.inc
 
-        OPENBLAS_DIR=$(brew --prefix openblas)
-        METIS_DIR=$(brew --prefix metis)
-        LIBOMP_DIR=$(brew --prefix libomp)
-
-        # Remove SCOTCH from config
+        # Remove SCOTCH if unused
         sed -i '' '/^SCOTCH/d' Makefile.inc
         sed -i '' '/^ISCOTCH/d' Makefile.inc
         sed -i '' '/^LSCOTCH/d' Makefile.inc
 
-        # Use mpicc/mpif90
+        # Use mpicc/mpif90 with gfortran
         echo "CC = mpicc" >> Makefile.inc
         echo "FC = mpif90" >> Makefile.inc
         echo "FL = mpif90" >> Makefile.inc
 
-        # OpenMP flags for Clang (macOS)
-        echo "CFLAGS = -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include" >> Makefile.inc
+        # Flags for Clang's OpenMP
+        echo "CFLAGS = -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC" >> Makefile.inc
         echo "LDFLAGS = -L${LIBOMP_DIR}/lib -lomp" >> Makefile.inc
 
-        # Paths and flags
+        # Other libraries
         echo "LIBBLAS = -L${OPENBLAS_DIR}/lib -lopenblas" >> Makefile.inc
         echo "LIBMETIS = -L${METIS_DIR}/lib -lmetis" >> Makefile.inc
         echo "IMETIS = -I${METIS_DIR}/include" >> Makefile.inc
-        echo "OPTF = -fallow-argument-mismatch -O2" >> Makefile.inc
+        echo "OPTF = -O2 -fallow-argument-mismatch" >> Makefile.inc
         echo "SONAMEOPT = " >> Makefile.inc
 
+        # Build PORD library and additional object files
+        if [ "./PORD/lib/" != "" ] ; then \
+            cd ./PORD/lib/; \
+            /Applications/Xcode_15.4.app/Contents/Developer/usr/bin/make PLAT="" FPIC="-fPIC" CC="mpicc" CFLAGS="-Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC" LDFLAGS="-L${LIBOMP_DIR}/lib -lomp" AR="ar vr " RANLIB="ranlib" OUTC="-o " LIBEXT=".a" LIBEXT_SHARED=".dylib" libpord.dylib; \
+            cd ../..; \
+        fi
+        mpicc -I./include -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC -c ./src/graph.c -o ./src/graph.o || true
+        mpicc -I./include -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC -c ./src/gbipart.c -o ./src/gbipart.o || true
+        mpicc -I./include -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC -c ./src/gbisect.c -o ./src/gbisect.o || true
+
+        # Build MUMPS
         make -j$(sysctl -n hw.ncpu) allshared
 
+        # Copy artifacts
         mkdir -p include lib
         cp include/*.h include/
         cp *.mod include/ || true
         cp lib/*.a lib/ || true
         cp lib/*.dylib lib/ || true
-        cp libseq/libmpiseq.a lib/
+        cp libseq/libmpiseq.a lib/ || true
 
     - name: Install Python packages
       run: |
@@ -72,7 +87,10 @@ jobs:
 
     - name: Build mumps4py
       run: |
-        python setup.py build_ext --inplace
+        export CC=mpicc
+        export CFLAGS="-Xpreprocessor -fopenmp -I${{ env.MUMPS_INC }} -I${{ env.LIBOMP_DIR }}/include -O -fPIC"
+        export LDFLAGS="-L${{ env.MUMPS_LIB }} -L${{ env.LIBOMP_DIR }}/lib -lomp"
+        python setup.py build_ext --inplace --verbose
         pip install .
 
     - name: Run tests
