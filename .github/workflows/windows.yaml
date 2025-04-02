@@ -71,7 +71,7 @@ jobs:
         echo "OPTF = -O3" >> Makefile.inc
         echo "OPTC = -O3" >> Makefile.inc
         mkdir -p lib include
-        C:/msys64/mingw64/bin/mingw-make all
+        make all
         cp include/*.h include/
         cp lib/*.a lib/
 
