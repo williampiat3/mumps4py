@@ -24,11 +24,12 @@ jobs:
         brew update
         brew install gcc openblas lapack wget cmake python
 
-    - name: Install METIS 5.1.0 from mirror
+    - name: Install METIS 5.1.0 from GitHub
       run: |
-        curl -L -o metis-5.1.0.tar.gz https://sourceforge.net/projects/openfoam-extend/files/foam-extend-3.0/ThirdParty/metis-5.1.0.tar.gz/download
+        curl -L -o metis-5.1.0.tar.gz https://github.com/xijunke/METIS-1/archive/refs/heads/master.tar.gz
         tar -xzf metis-5.1.0.tar.gz
-        cmake -S metis-5.1.0 -B metis-5.1.0/build -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/metis-5.1.0/install
+        mv METIS-1-master metis-5.1.0
+        cmake -S metis-5.1.0 -B metis-5.1.0/build -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/metis-install
         cmake --build metis-5.1.0/build --parallel
         cmake --install metis-5.1.0/build
 
@@ -41,8 +42,8 @@ jobs:
         sed -i '' 's/^CC *=.*/CC = gcc/' Makefile.inc
         sed -i '' 's/^FC *=.*/FC = gfortran/' Makefile.inc
         sed -i '' 's/^FL *=.*/FL = gfortran/' Makefile.inc
-        sed -i '' 's|^INCPAR *=.*|INCPAR = -I${{ github.workspace }}/metis-5.1.0/install/include|' Makefile.inc
-        sed -i '' 's|^LIBPAR *=.*|LIBPAR = -L${{ github.workspace }}/metis-5.1.0/install/lib -lmetis|' Makefile.inc
+        sed -i '' 's|^INCPAR *=.*|INCPAR = -I${{ github.workspace }}/metis-install/include|' Makefile.inc
+        sed -i '' 's|^LIBPAR *=.*|LIBPAR = -L${{ github.workspace }}/metis-install/lib -lmetis|' Makefile.inc
         make -j$(sysctl -n hw.ncpu)
         mkdir -p lib include
         cp libseq/libseq.a lib/
