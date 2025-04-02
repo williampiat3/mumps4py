@@ -29,7 +29,7 @@ jobs:
         curl -L https://coin-or-tools.github.io/ThirdParty-Mumps/MUMPS_5.7.3.tar.gz -o MUMPS_5.7.3.tar.gz
         tar xzf MUMPS_5.7.3.tar.gz
         cd MUMPS_5.7.3
-        cp Make.inc/Makefile.inc.debian.PAR Makefile.inc
+        cp Make.inc/Makefile.debian.PAR Makefile.inc
 
         OPENBLAS_DIR=$(brew --prefix openblas)
         METIS_DIR=$(brew --prefix metis)
