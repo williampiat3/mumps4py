@@ -42,7 +42,7 @@ jobs:
         
         cd metis-5.1.0
         mkdir -p build && cd build
-        cmake .. -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/metis -DGKLIB_PATH=../GKlib
+        cmake .. -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/metis -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DGKLIB_PATH=../GKlib
         make -j$(sysctl -n hw.ncpu)
         make install
         echo "METIS_DIR=$GITHUB_WORKSPACE/metis" >> $GITHUB_ENV
