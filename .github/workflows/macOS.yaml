@@ -14,6 +14,9 @@ jobs:
       MUMPS_SOLVERS: dmumps,zmumps,smumps,cmumps
       MUMPS_INC: ${{ github.workspace }}/MUMPS_5.7.3/include
       MUMPS_LIB: ${{ github.workspace }}/MUMPS_5.7.3/lib
+      LIBOMP_DIR: $(brew --prefix libomp)
+      OPENBLAS_DIR: $(brew --prefix openblas)
+      METIS_DIR: $(brew --prefix metis)
 
     steps:
     - name: Checkout repository
@@ -31,10 +34,6 @@ jobs:
         cd MUMPS_5.7.3
         cp Make.inc/Makefile.debian.PAR Makefile.inc
 
-        OPENBLAS_DIR=$(brew --prefix openblas)
-        METIS_DIR=$(brew --prefix metis)
-        LIBOMP_DIR=$(brew --prefix libomp)
-
         # Remove SCOTCH if unused
         sed -i '' '/^SCOTCH/d' Makefile.inc
         sed -i '' '/^ISCOTCH/d' Makefile.inc
@@ -46,7 +45,7 @@ jobs:
         echo "FL = mpif90" >> Makefile.inc
 
         # Flags for Clang's OpenMP
-        echo "CFLAGS = -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include" >> Makefile.inc
+        echo "CFLAGS = -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC" >> Makefile.inc
         echo "LDFLAGS = -L${LIBOMP_DIR}/lib -lomp" >> Makefile.inc
 
         # Other libraries
@@ -56,14 +55,26 @@ jobs:
         echo "OPTF = -O2 -fallow-argument-mismatch" >> Makefile.inc
         echo "SONAMEOPT = " >> Makefile.inc
 
+        # Build PORD library and additional object files
+        if [ "./PORD/lib/" != "" ] ; then \
+            cd ./PORD/lib/; \
+            /Applications/Xcode_15.4.app/Contents/Developer/usr/bin/make PLAT="" FPIC="-fPIC" CC="mpicc" CFLAGS="-Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC" LDFLAGS="-L${LIBOMP_DIR}/lib -lomp" AR="ar vr " RANLIB="ranlib" OUTC="-o " LIBEXT=".a" LIBEXT_SHARED=".dylib" libpord.dylib; \
+            cd ../..; \
+        fi
+        mpicc -I./include -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC -c ./src/graph.c -o ./src/graph.o || true
+        mpicc -I./include -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC -c ./src/gbipart.c -o ./src/gbipart.o || true
+        mpicc -I./include -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC -c ./src/gbisect.c -o ./src/gbisect.o || true
+
+        # Build MUMPS
         make -j$(sysctl -n hw.ncpu) allshared
 
+        # Copy artifacts
         mkdir -p include lib
         cp include/*.h include/
         cp *.mod include/ || true
         cp lib/*.a lib/ || true
         cp lib/*.dylib lib/ || true
-        cp libseq/libmpiseq.a lib/
+        cp libseq/libmpiseq.a lib/ || true
 
     - name: Install Python packages
       run: |
@@ -72,7 +83,10 @@ jobs:
 
     - name: Build mumps4py
       run: |
-        python setup.py build_ext --inplace
+        export CC=mpicc
+        export CFLAGS="-Xpreprocessor -fopenmp -I${{ env.MUMPS_INC }} -I${{ env.LIBOMP_DIR }}/include -O -fPIC"
+        export LDFLAGS="-L${{ env.MUMPS_LIB }} -L${{ env.LIBOMP_DIR }}/lib -lomp"
+        python setup.py build_ext --inplace --verbose
         pip install .
 
     - name: Run tests
