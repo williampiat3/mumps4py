@@ -19,36 +19,41 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install system packages + MPI
+    - name: Install system packages + OpenMPI + libomp
       run: |
         brew update
-        brew install gcc openblas lapack cmake metis open-mpi
+        brew install open-mpi openblas lapack cmake metis libomp
 
-        # Locate mpif90 and add its path to GITHUB_ENV
-        MPIF90_PATH=$(which mpif90)
-        echo "Found mpif90: $MPIF90_PATH"
-        echo "PATH=$(dirname $MPIF90_PATH):$PATH" >> $GITHUB_ENV
-
-    - name: Install MUMPS 5.7.3 (parallel + shared)
+    - name: Install MUMPS 5.7.3 (parallel + shared with mpicc/mpif90)
       run: |
         curl -L https://coin-or-tools.github.io/ThirdParty-Mumps/MUMPS_5.7.3.tar.gz -o MUMPS_5.7.3.tar.gz
         tar xzf MUMPS_5.7.3.tar.gz
         cd MUMPS_5.7.3
-        cp Make.inc/Makefile.debian.PAR Makefile.inc
+        cp Make.inc/Makefile.inc.debian.PAR Makefile.inc
 
         OPENBLAS_DIR=$(brew --prefix openblas)
         METIS_DIR=$(brew --prefix metis)
+        LIBOMP_DIR=$(brew --prefix libomp)
 
         # Remove SCOTCH if unused
         sed -i '' '/^SCOTCH/d' Makefile.inc
         sed -i '' '/^ISCOTCH/d' Makefile.inc
         sed -i '' '/^LSCOTCH/d' Makefile.inc
 
-        # Inject updated paths and flags
+        # Use mpicc/mpif90
+        echo "CC = mpicc" >> Makefile.inc
+        echo "FC = mpif90" >> Makefile.inc
+        echo "FL = mpif90" >> Makefile.inc
+
+        # Flags for Clang's OpenMP
+        echo "CFLAGS = -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include" >> Makefile.inc
+        echo "LDFLAGS = -L${LIBOMP_DIR}/lib -lomp" >> Makefile.inc
+
+        # Other libraries
         echo "LIBBLAS = -L${OPENBLAS_DIR}/lib -lopenblas" >> Makefile.inc
         echo "LIBMETIS = -L${METIS_DIR}/lib -lmetis" >> Makefile.inc
         echo "IMETIS = -I${METIS_DIR}/include" >> Makefile.inc
-        echo "OPTF = -fallow-argument-mismatch -O2" >> Makefile.inc
+        echo "OPTF = -O2 -fallow-argument-mismatch" >> Makefile.inc
         echo "SONAMEOPT = " >> Makefile.inc
 
         make -j$(sysctl -n hw.ncpu) allshared
