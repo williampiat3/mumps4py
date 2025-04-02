@@ -34,22 +34,16 @@ jobs:
         fi
         GFORTRAN_BIN=$(basename $GFORTRAN_PATH)
         echo "Found gfortran: $GFORTRAN_BIN"
-        # Verify gfortran works
         $GFORTRAN_BIN --version
-        # Add gcc bin directory to PATH
         echo "$(brew --prefix gcc)/bin" >> $GITHUB_PATH
-        # Verify PATH update
         echo "PATH after update: $PATH"
         which $GFORTRAN_BIN
 
     - name: Link gfortran (if needed)
       run: |
-        # Check if gfortran is already available
         if ! command -v gfortran &> /dev/null; then
-          # Find the installed gfortran binary (e.g., gfortran-13)
           GFORTRAN_BIN=$(find $(brew --prefix gcc)/bin -name 'gfortran-*' | head -n 1)
           if [ -n "$GFORTRAN_BIN" ]; then
-            # Link to a user-writable directory in PATH
             mkdir -p ~/bin
             ln -sf "$GFORTRAN_BIN" ~/bin/gfortran
             echo "~/bin" >> $GITHUB_PATH
@@ -59,7 +53,6 @@ jobs:
             exit 1
           fi
         fi
-        # Verify
         which gfortran
         gfortran --version
 
@@ -70,7 +63,7 @@ jobs:
         cd MUMPS_5.7.3
         cp Make.inc/Makefile.debian.PAR Makefile.inc
 
-        # Remove SCOTCH if unused
+        # Remove SCOTCH-related settings
         sed -i '' '/^SCOTCH/d' Makefile.inc
         sed -i '' '/^ISCOTCH/d' Makefile.inc
         sed -i '' '/^LSCOTCH/d' Makefile.inc
@@ -79,19 +72,21 @@ jobs:
         echo "CC = mpicc" >> Makefile.inc
         echo "FC = mpif90" >> Makefile.inc
         echo "FL = mpif90" >> Makefile.inc
-        # Optionally specify FORTRAN if needed
-        # echo "FORTRAN = gfortran" >> Makefile.inc
 
         # Flags for Clang's OpenMP
         echo "CFLAGS = -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC" >> Makefile.inc
         echo "LDFLAGS = -L${LIBOMP_DIR}/lib -lomp" >> Makefile.inc
 
-        # Other libraries
+        # Other libraries (METIS and OpenBLAS, no Scotch)
         echo "LIBBLAS = -L${OPENBLAS_DIR}/lib -lopenblas" >> Makefile.inc
         echo "LIBMETIS = -L${METIS_DIR}/lib -lmetis" >> Makefile.inc
         echo "IMETIS = -I${METIS_DIR}/include" >> Makefile.inc
         echo "OPTF = -O2 -fallow-argument-mismatch" >> Makefile.inc
         echo "SONAMEOPT = " >> Makefile.inc
+
+        # Explicitly disable Scotch in OPTF (remove -Dscotch)
+        sed -i '' 's/-Dscotch//g' Makefile.inc
+        sed -i '' 's/-Dscotch//g' src/Makefile
 
         # Build PORD library and additional object files
         if [ "./PORD/lib/" != "" ] ; then \
