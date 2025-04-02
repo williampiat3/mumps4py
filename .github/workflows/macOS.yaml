@@ -13,7 +13,7 @@ jobs:
     env:
       MUMPS_SOLVERS: dmumps,zmumps,smumps,cmumps
       MUMPS_INC: ${{ github.workspace }}/MUMPS_5.7.3/include
-      MUMPS_LIB: ${{ github.workspace }}/MUMPS_5.7.3/lib
+      MUMPS_LIB: ${{ github.workflow }}/MUMPS_5.7.3/lib
       LIBOMP_DIR: $(brew --prefix libomp)
       OPENBLAS_DIR: $(brew --prefix openblas)
       METIS_DIR: $(brew --prefix metis)
@@ -22,10 +22,14 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install system packages + OpenMPI + libomp
+    - name: Install system packages + OpenMPI + libomp + gfortran
       run: |
         brew update
-        brew install open-mpi openblas lapack cmake metis libomp
+        brew install open-mpi openblas lapack cmake metis libomp gcc
+        # Verify gfortran is installed
+        gfortran --version
+        # Add gfortran to PATH (Homebrew installs it as part of gcc)
+        echo "$(brew --prefix gcc)/bin" >> $GITHUB_PATH
 
     - name: Install MUMPS 5.7.3 (parallel + shared with mpicc/mpif90)
       run: |
@@ -39,7 +43,7 @@ jobs:
         sed -i '' '/^ISCOTCH/d' Makefile.inc
         sed -i '' '/^LSCOTCH/d' Makefile.inc
 
-        # Use mpicc/mpif90
+        # Use mpicc/mpif90 with gfortran
         echo "CC = mpicc" >> Makefile.inc
         echo "FC = mpif90" >> Makefile.inc
         echo "FL = mpif90" >> Makefile.inc
