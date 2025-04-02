@@ -32,7 +32,7 @@ jobs:
         mkdir build && cd build
         cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local
         make -j$(sysctl -n hw.ncpu)
-        make install
+        sudo make install
         cd ../..
 
     - name: Install MUMPS 5.7.0 (COIN-OR)
@@ -46,7 +46,7 @@ jobs:
         sed -i '' 's/^FL *=.*/FL = gfortran/' Makefile.inc
         sed -i '' 's/^LIBSEQ *=.*/LIBSEQ = -lpthread/' Makefile.inc
         make -j$(sysctl -n hw.ncpu)
-        make install
+        sudo make install
         cd ..
 
     - name: Install Python packages
