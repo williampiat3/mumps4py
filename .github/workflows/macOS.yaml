@@ -22,18 +22,8 @@ jobs:
     - name: Install system packages + gfortran symlink
       run: |
         brew update
-        brew install gcc openblas lapack cmake metis
-
-        # Ensure gfortran is available (create symlink if missing)
-        if ! command -v gfortran &> /dev/null; then
-          GFORTRAN_BIN=$(brew --prefix gcc)/bin/gfortran-$(ls $(brew --prefix gcc)/bin | grep -Eo 'gfortran-[0-9]+' | sed 's/gfortran-//')
-          sudo ln -s $GFORTRAN_BIN /usr/local/bin/gfortran || true
-        fi
-
-        echo "Using gfortran:"
-        which gfortran
-        gfortran --version
-
+        brew install gcc openblas lapack cmake metis gfortran
+        
     - name: Install MUMPS manually
       run: |
         # Download MUMPS 5.7.3 (version stable)
