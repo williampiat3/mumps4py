@@ -14,7 +14,7 @@ jobs:
       MUMPS_SOLVERS: dmumps
       MUMPS_ROOT: ${{ github.workspace }}\mumps
       MUMPS_INC: ${{ github.workspace }}\mumps\include
-      MUMPS_LIB: ${{ github.workflow }}\mumps\lib
+      MUMPS_LIB: ${{ github.workspace }}\mumps\lib  # Fixed typo from previous version
 
     steps:
     - name: Setup MSYS2 with required packages
@@ -47,10 +47,10 @@ jobs:
     - name: Download and extract MUMPS
       shell: msys2 {0}
       run: |
-        curl -L -o mumps.tgz https://coin-or-tools.github.io/ThirdParty-Mumps/MUMPS_5.7.3.tar.gz
+        curl -L -o mumps.tgz https://coin-or-tools.github.io/ThirdParty-Mumps/MUMPS_5.7.0.tar.gz
         if [ $? -ne 0 ]; then echo "Download failed"; exit 1; fi
         tar -xf mumps.tgz
-        mv MUMPS_5.7.3 mumps
+        mv MUMPS_5.7.0 mumps
 
     - name: Configure and build MUMPS with MSMPI
       shell: msys2 {0}
@@ -59,7 +59,7 @@ jobs:
         cp Make.inc/Makefile.inc.generic Makefile.inc
         echo "LIBBLAS = -lopenblas" >> Makefile.inc
         echo "LIBLAPACK = -llapack" >> Makefile.inc
-        echo "LPORDDIR = $(topdir)/PORD/lib/" >> Makefile.inc
+        echo "LPORDDIR = ./PORD/lib/" >> Makefile.inc
         echo "IPORD = -lpord" >> Makefile.inc
         echo "LMETISDIR = " >> Makefile.inc
         echo "IMETIS = " >> Makefile.inc
@@ -71,7 +71,7 @@ jobs:
         echo "OPTF = -O3" >> Makefile.inc
         echo "OPTC = -O3" >> Makefile.inc
         mkdir -p lib include
-        make all
+        mingw64/bin/make all  # Use full path to ensure make is found
         cp include/*.h include/
         cp lib/*.a lib/
 
