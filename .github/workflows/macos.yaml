@@ -2,9 +2,9 @@ name: CI MUMPS4PY (macOS)
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build-and-test-macos:
@@ -19,10 +19,25 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install dependencies
+    - name: Install Homebrew
       run: |
-        brew tap brewsci/num
+        if ! command -v brew &>/dev/null; then
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        fi
+        brew update
+
+    - name: Tap brewsci/num repository
+      run: |
+        if ! brew tap | grep -q 'brewsci/num'; then
+          brew tap brewsci/num
+        fi
+
+    - name: Install MUMPS and dependencies
+      run: |
         brew install brewsci-mumps gcc openblas lapack python
+
+    - name: Install Python packages
+      run: |
         pip3 install --upgrade pip
         pip3 install numpy mpi4py cython pytest
 
