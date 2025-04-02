@@ -34,6 +34,14 @@ jobs:
         # Vérification que les bibliothèques sont bien installées
         ls -l $(brew --prefix brewsci-mumps)/lib
         
+        # Configurer gfortran
+        if ! command -v gfortran &> /dev/null; then
+          GFORTRAN_BIN=$(brew --prefix gcc)/bin/gfortran-$(brew list gcc | grep -oE '[0-9]+$' | head -1)
+          sudo ln -s $GFORTRAN_BIN /usr/local/bin/gfortran
+        fi
+
+        which gfortran
+        gfortran --version
 
     - name: Install Python packages
       run: |
@@ -46,4 +54,7 @@ jobs:
         pip install .
 
     - name: Check mumps4py module
-      run:
+      run: python -c "import mumps4py; print(mumps4py.__file__)"
+
+    - name: Run mumps4py tests
+      run: mpiexec -n 1 pytest -v
