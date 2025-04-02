@@ -24,11 +24,6 @@ jobs:
         brew update
         brew install openblas lapack cmake metis
         
-        # Configure gfortran
-        GFORTRAN_BIN=$(brew --prefix gcc)/bin/gfortran-$(brew list gcc | grep -oE '[0-9]+$' | head -1)
-        sudo ln -sf $GFORTRAN_BIN /usr/local/bin/gfortran
-        gfortran --version
-
     - name: Install MUMPS manually
       run: |
         # Download MUMPS 5.5.1 (version stable)
