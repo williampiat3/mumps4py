@@ -36,7 +36,7 @@ jobs:
       - name: Install Python deps
         run: |
           python3 -m pip install --upgrade pip
-          pip install cython numpy scipy mpi4py pytest
+          pip install cython numpy mpi4py pytest
 
       - name: Build mumps4py
         run: |
