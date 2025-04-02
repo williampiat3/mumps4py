@@ -14,7 +14,7 @@ jobs:
       MUMPS_SOLVERS: dmumps
       MUMPS_ROOT: ${{ github.workspace }}\mumps
       MUMPS_INC: ${{ github.workspace }}\mumps\include
-      MUMPS_LIB: ${{ github.workspace }}\mumps\lib  # Fixed typo from previous version
+      MUMPS_LIB: ${{ github.workspace }}\mumps\lib
 
     steps:
     - name: Setup MSYS2 with required packages
@@ -71,7 +71,7 @@ jobs:
         echo "OPTF = -O3" >> Makefile.inc
         echo "OPTC = -O3" >> Makefile.inc
         mkdir -p lib include
-        mingw64/bin/make all  # Use full path to ensure make is found
+        C:/msys64/mingw64/bin/mingw-make all
         cp include/*.h include/
         cp lib/*.a lib/
 
