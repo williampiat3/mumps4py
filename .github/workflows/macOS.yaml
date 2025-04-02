@@ -73,6 +73,7 @@ jobs:
         echo "IMETIS = -I${METIS_DIR}/include" >> Makefile.inc
         echo "SONAMEOPT = " >> Makefile.inc
 
+        find . -name "Makefile*" -exec sed -i '' 's/-Wl,-soname[^ ]*//g' {} \;
         # Remove OpenMP and Scotch flags
         find . -name "Makefile*" -exec sed -i '' 's/-fopenmp//g' {} \;
         find . -name "Makefile*" -exec sed -i '' 's/-Xpreprocessor -fopenmp//g' {} \;
