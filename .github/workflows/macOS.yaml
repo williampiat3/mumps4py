@@ -33,7 +33,7 @@ jobs:
         
         # Install MUMPS from brewsci
         brew tap brewsci/num
-        brew install brewsci-mumps
+        brew install brewsci-mumps –without-mpi
         
         # Create symlink to gfortran if needed
         if ! command -v gfortran &> /dev/null; then
