@@ -22,10 +22,28 @@ jobs:
     - name: Install system packages
       run: |
         brew update
-        brew install openblas lapack metis
+        brew install gcc openblas lapack python cmake
+        
+        # Install METIS first from the main Homebrew repo
+        brew install metis
+        
+        # Create a symlink for METIS to trick brewsci-mumps
+        mkdir -p $(brew --prefix)/Cellar/metis/5.1.0
+        ln -s $(brew --prefix metis) $(brew --prefix)/Cellar/metis/5.1.0
+        
+        # Install MUMPS from brewsci
         brew tap brewsci/num
         brew install brewsci-mumps
         
+        # Create symlink to gfortran if needed
+        if ! command -v gfortran &> /dev/null; then
+          GFORTRAN_BIN=$(brew --prefix gcc)/bin/gfortran-$(brew list gcc | grep -oE '[0-9]+$' | head -1)
+          sudo ln -s $GFORTRAN_BIN /usr/local/bin/gfortran
+        fi
+
+        which gfortran
+        gfortran --version
+
     - name: Install Python packages
       run: |
         python -m pip install --upgrade pip
