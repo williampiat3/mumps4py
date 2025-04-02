@@ -14,52 +14,105 @@ jobs:
       MUMPS_SOLVERS: dmumps,zmumps,smumps,cmumps
       MUMPS_INC: ${{ github.workspace }}/MUMPS_5.7.3/include
       MUMPS_LIB: ${{ github.workspace }}/MUMPS_5.7.3/lib
+      LIBOMP_DIR: $(brew --prefix libomp)
+      OPENBLAS_DIR: $(brew --prefix openblas)
+      METIS_DIR: $(brew --prefix metis)
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install system packages
+    - name: Install system packages + OpenMPI + libomp + gfortran
       run: |
         brew update
-        brew install gcc openblas lapack cmake metis
+        brew install open-mpi openblas lapack cmake metis libomp gcc
+        GFORTRAN_PATH=$(find $(brew --prefix gcc)/bin -name 'gfortran-*' | head -n 1)
+        if [ -z "$GFORTRAN_PATH" ]; then
+          echo "Error: gfortran not found after installing gcc"
+          exit 1
+        fi
+        GFORTRAN_BIN=$(basename $GFORTRAN_PATH)
+        echo "Found gfortran: $GFORTRAN_BIN"
+        $GFORTRAN_BIN --version
+        echo "$(brew --prefix gcc)/bin" >> $GITHUB_PATH
+        echo "PATH after update: $PATH"
+        which $GFORTRAN_BIN
 
-    - name: Install MUMPS 5.7.3 (parallel + shared, no SCOTCH)
+    - name: Link gfortran (if needed)
+      run: |
+        if ! command -v gfortran &> /dev/null; then
+          GFORTRAN_BIN=$(find $(brew --prefix gcc)/bin -name 'gfortran-*' | head -n 1)
+          if [ -n "$GFORTRAN_BIN" ]; then
+            mkdir -p ~/bin
+            ln -sf "$GFORTRAN_BIN" ~/bin/gfortran
+            echo "~/bin" >> $GITHUB_PATH
+            echo "Linked $GFORTRAN_BIN to ~/bin/gfortran"
+          else
+            echo "Error: No gfortran binary found in $(brew --prefix gcc)/bin"
+            exit 1
+          fi
+        fi
+        which gfortran
+        gfortran --version
+
+    - name: Install MUMPS 5.7.3 (parallel + shared with mpicc/mpif90)
       run: |
         curl -L https://coin-or-tools.github.io/ThirdParty-Mumps/MUMPS_5.7.3.tar.gz -o MUMPS_5.7.3.tar.gz
         tar xzf MUMPS_5.7.3.tar.gz
         cd MUMPS_5.7.3
         cp Make.inc/Makefile.debian.PAR Makefile.inc
 
-        OPENBLAS_DIR=$(brew --prefix openblas)
-        METIS_DIR=$(brew --prefix metis)
-        GCC_DIR=$(brew --prefix gcc)
-
-        # Remove SCOTCH
+        # Remove SCOTCH-related settings
         sed -i '' '/^SCOTCH/d' Makefile.inc
         sed -i '' '/^ISCOTCH/d' Makefile.inc
         sed -i '' '/^LSCOTCH/d' Makefile.inc
 
-        # Use Homebrew GCC (no clang)
-        echo "CC = ${GCC_DIR}/bin/gcc-13" >> Makefile.inc
-        echo "FC = ${GCC_DIR}/bin/gfortran-13" >> Makefile.inc
-        echo "FL = ${GCC_DIR}/bin/gfortran-13" >> Makefile.inc
+        # Use mpicc/mpif90 with gfortran
+        echo "CC = mpicc" >> Makefile.inc
+        echo "FC = mpif90" >> Makefile.inc
+        echo "FL = mpif90" >> Makefile.inc
 
-        # Set libraries
+        # Flags for Clang's OpenMP
+        echo "CFLAGS = -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC" >> Makefile.inc
+        echo "LDFLAGS = -L${LIBOMP_DIR}/lib -lomp" >> Makefile.inc
+        echo "OPTC = -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC" >> Makefile.inc  # For C files
+        echo "OPTF = -O2 -fallow-argument-mismatch -fPIC" >> Makefile.inc  # No -fopenmp for Fortran
+
+        # Other libraries (METIS and OpenBLAS, no Scotch)
         echo "LIBBLAS = -L${OPENBLAS_DIR}/lib -lopenblas" >> Makefile.inc
         echo "LIBMETIS = -L${METIS_DIR}/lib -lmetis" >> Makefile.inc
         echo "IMETIS = -I${METIS_DIR}/include" >> Makefile.inc
-        echo "OPTF = -fallow-argument-mismatch -O2" >> Makefile.inc
         echo "SONAMEOPT = " >> Makefile.inc
 
-        make -j$(sysctl -n hw.ncpu) allshared
+        # Remove -fopenmp and -Dscotch from all Makefiles
+        find . -name "Makefile*" -exec sed -i '' 's/-fopenmp/-Xpreprocessor -fopenmp/g' {} \;
+        find . -name "Makefile*" -exec sed -i '' 's/-Dscotch//g' {} \;
 
+        # Export flags to override any defaults
+        export CFLAGS="-Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC"
+        export LDFLAGS="-L${LIBOMP_DUR}/lib -lomp"
+        export FCFLAGS="-O2 -fallow-argument-mismatch -fPIC"
+
+        # Build PORD library and additional object files
+        if [ "./PORD/lib/" != "" ] ; then \
+            cd ./PORD/lib/; \
+            /Applications/Xcode_15.4.app/Contents/Developer/usr/bin/make PLAT="" FPIC="-fPIC" CC="mpicc" CFLAGS="-Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC" LDFLAGS="-L${LIBOMP_DIR}/lib -lomp" AR="ar vr " RANLIB="ranlib" OUTC="-o " LIBEXT=".a" LIBEXT_SHARED=".dylib" libpord.dylib; \
+            cd ../..; \
+        fi
+        mpicc -I./include -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC -c ./src/graph.c -o ./src/graph.o || true
+        mpicc -I./include -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC -c ./src/gbipart.c -o ./src/gbipart.o || true
+        mpicc -I./include -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC -c ./src/gbisect.c -o ./src/gbisect.o || true
+
+        # Build MUMPS with verbose output
+        make -j$(sysctl -n hw.ncpu) allshared V=1
+
+        # Copy artifacts
         mkdir -p include lib
         cp include/*.h include/
         cp *.mod include/ || true
         cp lib/*.a lib/ || true
         cp lib/*.dylib lib/ || true
-        cp libseq/libmpiseq.a lib/
+        cp libseq/libmpiseq.a lib/ || true
 
     - name: Install Python packages
       run: |
@@ -68,7 +121,10 @@ jobs:
 
     - name: Build mumps4py
       run: |
-        python setup.py build_ext --inplace
+        export CC=mpicc
+        export CFLAGS="-Xpreprocessor -fopenmp -I${{ env.MUMPS_INC }} -I${{ env.LIBOMP_DIR }}/include -O -fPIC"
+        export LDFLAGS="-L${{ env.MUMPS_LIB }} -L${{ env.LIBOMP_DIR }}/lib -lomp"
+        python setup.py build_ext --inplace --verbose
         pip install .
 
     - name: Run tests
