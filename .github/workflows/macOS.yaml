@@ -48,11 +48,6 @@ jobs:
         cd MUMPS_5.7.3
         cp Make.inc/Makefile.debian.PAR Makefile.inc
 
-        # Remove SCOTCH if unused
-        sed -i '' '/^SCOTCH/d' Makefile.inc
-        sed -i '' '/^ISCOTCH/d' Makefile.inc
-        sed -i '' '/^LSCOTCH/d' Makefile.inc
-
         # Use mpicc/mpif90 with gfortran
         echo "CC = mpicc" >> Makefile.inc
         echo "FC = mpif90" >> Makefile.inc
