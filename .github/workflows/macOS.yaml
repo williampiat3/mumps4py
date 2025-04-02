@@ -29,7 +29,7 @@ jobs:
         echo "Found gfortran binary: $GFORTRAN_PATH"
         echo "PATH=$(dirname $GFORTRAN_PATH):$PATH" >> $GITHUB_ENV
 
-    - name: Install MUMPS 5.7.3 (manual build)
+    - name: Install MUMPS 5.7.3 (allshared build)
       run: |
         curl -L https://coin-or-tools.github.io/ThirdParty-Mumps/MUMPS_5.7.3.tar.gz -o MUMPS_5.7.3.tar.gz
         tar xzf MUMPS_5.7.3.tar.gz
@@ -53,11 +53,13 @@ jobs:
         echo "IMETIS = -I${METIS_DIR}/include" >> Makefile.inc
         echo "OPTF = -fallow-argument-mismatch -O2" >> Makefile.inc
 
-        make -j$(sysctl -n hw.ncpu) d z s c
+        make -j$(sysctl -n hw.ncpu) allshared
 
         mkdir -p include lib
         cp include/*.h include/
-        cp lib/*.a lib/
+        cp *.mod include/ || true
+        cp lib/*.a lib/ || true
+        cp lib/*.dylib lib/ || true
         cp libseq/libmpiseq.a lib/
 
     - name: Install Python packages
