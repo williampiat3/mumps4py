@@ -12,8 +12,8 @@ jobs:
 
     env:
       MUMPS_SOLVERS: dmumps,zmumps,smumps,cmumps
-      MUMPS_INC: /usr/local/include
-      MUMPS_LIB: /usr/local/lib
+      MUMPS_INC: /usr/local/opt/brewsci-mumps/include
+      MUMPS_LIB: /usr/local/opt/brewsci-mumps/lib
 
     steps:
     - name: Checkout repository
@@ -22,20 +22,22 @@ jobs:
     - name: Install system packages
       run: |
         brew update
-        brew install openblas lapack wget cmake metis mumps
-
+        brew install openblas lapack metis
+        brew tap brewsci/num
+        brew install brewsci-mumps
+        
     - name: Install Python packages
       run: |
-        pip3 install --upgrade pip
-        pip3 install numpy mpi4py cython pytest
+        python -m pip install --upgrade pip
+        pip install numpy mpi4py cython pytest
 
     - name: Build mumps4py
       run: |
-        python3 setup.py build_ext --inplace
-        pip3 install .
+        python setup.py build_ext --inplace
+        pip install .
 
     - name: Check mumps4py module
-      run: python3 -c "import mumps4py; print(mumps4py.__file__)"
+      run: python -c "import mumps4py; print(mumps4py.__file__)"
 
     - name: Run mumps4py tests
       run: mpiexec -n 1 pytest -v
