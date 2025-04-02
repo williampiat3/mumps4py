@@ -76,16 +76,13 @@ jobs:
         echo "LIBBLAS = -L${OPENBLAS_DIR}/lib -lopenblas" >> Makefile.inc
         echo "LIBMETIS = -L${METIS_DIR}/lib -lmetis" >> Makefile.inc
         echo "IMETIS = -I${METIS_DIR}/include" >> Makefile.inc
-        echo "SONAMEOPT = -install_name" >> Makefile.inc  # macOS compatible
-
-        # Fix all Makefiles: remove unsupported -soname options
-        find . -name "Makefile*" -exec sed -i '' 's/-Wl,-soname,[^ ]*//g' {} \;
-        find . -name "Makefile*" -exec sed -i '' 's/-Wl,-soname//g' {} \;
-
+        echo "SONAMEOPT = -install_name" >> Makefile.inc  # macOS-compatible option
+        
         # Remove OpenMP and Scotch flags
         find . -name "Makefile*" -exec sed -i '' 's/-fopenmp//g' {} \;
         find . -name "Makefile*" -exec sed -i '' 's/-Xpreprocessor -fopenmp//g' {} \;
         find . -name "Makefile*" -exec sed -i '' 's/-Dscotch//g' {} \;
+        find . -name "Makefile*" -exec sed -i '' 's/-soname/-install_name/g' {} \;
 
         # Build PORD
         cd PORD/lib
