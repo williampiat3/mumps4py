@@ -12,9 +12,9 @@ jobs:
 
     env:
       MUMPS_SOLVERS: dmumps
-      MUMPS_ROOT: /mingw64
-      MUMPS_INC: /mingw64/include
-      MUMPS_LIB: /mingw64/lib
+      MUMPS_ROOT: ${{ github.workspace }}\mumps
+      MUMPS_INC: ${{ github.workspace }}\mumps\include
+      MUMPS_LIB: ${{ github.workspace }}\mumps\lib
 
     steps:
     - name: Setup MSYS2 with required packages
@@ -23,15 +23,17 @@ jobs:
         update: true
         install: |
           mingw-w64-x86_64-gcc-fortran
+          mingw-w64-x86_64-cmake
+          mingw-w64-x86_64-make
           mingw-w64-x86_64-ninja
           mingw-w64-x86_64-lapack
           mingw-w64-x86_64-openblas
           mingw-w64-x86_64-python
           mingw-w64-x86_64-python-pip
           mingw-w64-x86_64-python-numpy
+          mingw-w64-x86_64-python-scipy
           mingw-w64-x86_64-python-mpi4py
           mingw-w64-x86_64-msmpi
-          mingw-w64-x86_64-mumps
 
     - name: Add MSYS2 MinGW64 to PATH
       shell: bash
@@ -41,6 +43,42 @@ jobs:
 
     - name: Checkout repository
       uses: actions/checkout@v4
+
+    - name: Download and extract MUMPS
+      shell: msys2 {0}
+      run: |
+        curl -L -o mumps.tgz https://coin-or-tools.github.io/ThirdParty-Mumps/MUMPS_5.7.0.tar.gz
+        if [ $? -ne 0 ]; then echo "Download failed"; exit 1; fi
+        tar -xf mumps.tgz
+        mv MUMPS_5.7.0 mumps
+
+    - name: Configure and build MUMPS with MSMPI
+      shell: msys2 {0}
+      run: |
+        cd mumps
+        cp Make.inc/Makefile.inc.generic Makefile.inc
+        echo "LIBBLAS = -lopenblas" >> Makefile.inc
+        echo "LIBLAPACK = -llapack" >> Makefile.inc
+        echo "LPORDDIR = ./PORD/lib/" >> Makefile.inc
+        echo "IPORD = -lpord" >> Makefile.inc
+        echo "LMETISDIR = " >> Makefile.inc
+        echo "IMETIS = " >> Makefile.inc
+        echo "SCOTCHDIR = " >> Makefile.inc
+        echo "ISCOTCH = " >> Makefile.inc
+        echo "CC = gcc" >> Makefile.inc
+        echo "FC = gfortran" >> Makefile.inc
+        echo "FL = gfortran" >> Makefile.inc
+        echo "OPTF = -O3" >> Makefile.inc
+        echo "OPTC = -O3" >> Makefile.inc
+        mkdir -p lib include
+
+        # Verify make is available
+        which make
+        make --version
+
+        make all
+        cp include/*.h include/
+        cp lib/*.a lib/
 
     - name: Install Python dependencies
       shell: msys2 {0}
