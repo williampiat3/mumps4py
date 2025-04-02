@@ -73,10 +73,13 @@ jobs:
         echo "IMETIS = -I${METIS_DIR}/include" >> Makefile.inc
         echo "SONAMEOPT = " >> Makefile.inc
 
-        # Clean OpenMP and Scotch flags
+        # Remove OpenMP and Scotch flags
         find . -name "Makefile*" -exec sed -i '' 's/-fopenmp//g' {} \;
         find . -name "Makefile*" -exec sed -i '' 's/-Xpreprocessor -fopenmp//g' {} \;
         find . -name "Makefile*" -exec sed -i '' 's/-Dscotch//g' {} \;
+
+        # Remove incompatible -soname option for macOS
+        find . -name "Makefile*" -exec sed -i '' 's/-Wl,-soname=[^ ]*//g' {} \;
 
         # Build PORD
         cd PORD/lib
