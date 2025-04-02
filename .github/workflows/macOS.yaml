@@ -14,7 +14,6 @@ jobs:
       MUMPS_SOLVERS: dmumps,zmumps,smumps,cmumps
       MUMPS_INC: ${{ github.workspace }}/MUMPS_5.7.3/include
       MUMPS_LIB: ${{ github.workspace }}/MUMPS_5.7.3/lib
-      LIBOMP_DIR: $(brew --prefix libomp)
       OPENBLAS_DIR: $(brew --prefix openblas)
       METIS_DIR: $(brew --prefix metis)
 
@@ -22,10 +21,10 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install system packages + OpenMPI + libomp + gfortran
+    - name: Install system packages + OpenMPI + gfortran
       run: |
         brew update
-        brew install open-mpi openblas lapack cmake metis libomp gcc
+        brew install open-mpi openblas lapack cmake metis gcc
         GFORTRAN_PATH=$(find $(brew --prefix gcc)/bin -name 'gfortran-*' | head -n 1)
         if [ -z "$GFORTRAN_PATH" ]; then
           echo "Error: gfortran not found after installing gcc"
@@ -55,12 +54,12 @@ jobs:
         which gfortran
         gfortran --version
 
-    - name: Install MUMPS 5.7.3 (parallel + shared with mpicc/mpif90)
+    - name: Install MUMPS 5.7.3 (parallel + shared with mpicc/mpif90, no OpenMP)
       run: |
         curl -L https://coin-or-tools.github.io/ThirdParty-Mumps/MUMPS_5.7.3.tar.gz -o MUMPS_5.7.3.tar.gz
         tar xzf MUMPS_5.7.3.tar.gz
         cd MUMPS_5.7.3
-        cp Make.inc/Makefile.debian.PAR Makefile.inc
+        cp鬠Make.inc/Makefile.debian.PAR Makefile.inc
 
         # Remove SCOTCH-related settings
         sed -i '' '/^SCOTCH/d' Makefile.inc
@@ -72,11 +71,11 @@ jobs:
         echo "FC = mpif90" >> Makefile.inc
         echo "FL = mpif90" >> Makefile.inc
 
-        # Flags for Clang's OpenMP
-        echo "CFLAGS = -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC" >> Makefile.inc
-        echo "LDFLAGS = -L${LIBOMP_DIR}/lib -lomp" >> Makefile.inc
-        echo "OPTC = -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC" >> Makefile.inc  # For C files
-        echo "OPTF = -O2 -fallow-argument-mismatch -fPIC" >> Makefile.inc  # No -fopenmp for Fortran
+        # Basic optimization flags, no OpenMP
+        echo "CFLAGS = -O -fPIC" >> Makefile.inc
+        echo "LDFLAGS = " >> Makefile.inc
+        echo "OPTC = -O -fPIC" >> Makefile.inc
+        echo "OPTF = -O2 -fallow-argument-mismatch -fPIC" >> Makefile.inc
 
         # Other libraries (METIS and OpenBLAS, no Scotch)
         echo "LIBBLAS = -L${OPENBLAS_DIR}/lib -lopenblas" >> Makefile.inc
@@ -84,24 +83,20 @@ jobs:
         echo "IMETIS = -I${METIS_DIR}/include" >> Makefile.inc
         echo "SONAMEOPT = " >> Makefile.inc
 
-        # Remove -fopenmp and -Dscotch from all Makefiles
-        find . -name "Makefile*" -exec sed -i '' 's/-fopenmp/-Xpreprocessor -fopenmp/g' {} \;
+        # Remove any OpenMP and Scotch references from all Makefiles
+        find . -name "Makefile*" -exec sed -i '' 's/-fopenmp//g' {} \;
+        find . -name "Makefile*" -exec sed -i '' 's/-Xpreprocessor -fopenmp//g' {} \;
         find . -name "Makefile*" -exec sed -i '' 's/-Dscotch//g' {} \;
 
-        # Export flags to override any defaults
-        export CFLAGS="-Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC"
-        export LDFLAGS="-L${LIBOMP_DUR}/lib -lomp"
-        export FCFLAGS="-O2 -fallow-argument-mismatch -fPIC"
-
-        # Build PORD library and additional object files
+        # Build PORD library and additional object files (no OpenMP)
         if [ "./PORD/lib/" != "" ] ; then \
             cd ./PORD/lib/; \
-            /Applications/Xcode_15.4.app/Contents/Developer/usr/bin/make PLAT="" FPIC="-fPIC" CC="mpicc" CFLAGS="-Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC" LDFLAGS="-L${LIBOMP_DIR}/lib -lomp" AR="ar vr " RANLIB="ranlib" OUTC="-o " LIBEXT=".a" LIBEXT_SHARED=".dylib" libpord.dylib; \
+            /Applications/Xcode_15.4.app/Contents/Developer/usr/bin/make PLAT="" FPIC="-fPIC" CC="mpicc" CFLAGS="-O -fPIC" AR="ar vr " RANLIB="ranlib" OUTC="-o " LIBEXT=".a" LIBEXT_SHARED=".dylib" libpord.dylib; \
             cd ../..; \
         fi
-        mpicc -I./include -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC -c ./src/graph.c -o ./src/graph.o || true
-        mpicc -I./include -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC -c ./src/gbipart.c -o ./src/gbipart.o || true
-        mpicc -I./include -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC -c ./src/gbisect.c -o ./src/gbisect.o || true
+        mpicc -I./include -O -fPIC -c ./src/graph.c -o ./src/graph.o || true
+        mpicc -I./include -O -fPIC -c ./src/gbipart.c -o ./src/gbipart.o || true
+        mpicc -I./include -O -fPIC -c ./src/gbisect.c -o ./src/gbisect.o || true
 
         # Build MUMPS with verbose output
         make -j$(sysctl -n hw.ncpu) allshared V=1
@@ -119,11 +114,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install numpy mpi4py cython pytest
 
-    - name: Build mumps4py
+    - name: Build mumps4py (no OpenMP)
       run: |
         export CC=mpicc
-        export CFLAGS="-Xpreprocessor -fopenmp -I${{ env.MUMPS_INC }} -I${{ env.LIBOMP_DIR }}/include -O -fPIC"
-        export LDFLAGS="-L${{ env.MUMPS_LIB }} -L${{ env.LIBOMP_DIR }}/lib -lomp"
+        export CFLAGS="-O -fPIC -I${{ env.MUMPS_INC }}"
+        export LDFLAGS="-L${{ env.MUMPS_LIB }}"
         python setup.py build_ext --inplace --verbose
         pip install .
 
