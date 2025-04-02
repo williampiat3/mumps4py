@@ -71,7 +71,7 @@ jobs:
 
         # Compiler and linker flags
         echo "CFLAGS = -O -fPIC" >> Makefile.inc
-        echo "LDFLAGS = -Wl,-rpath,${METIS_DIR}/lib" >> Makefile.inc
+        echo "LDFLAGS = -L${METIS_DIR}/lib -Wl,-rpath,${METIS_DIR}/lib" >> Makefile.inc
         echo "OPTC = -O -fPIC -I${METIS_DIR}/include" >> Makefile.inc
         echo "OPTF = -O2 -fallow-argument-mismatch -fPIC" >> Makefile.inc
 
