@@ -12,8 +12,8 @@ jobs:
 
     env:
       MUMPS_SOLVERS: dmumps,zmumps,smumps,cmumps
-      MUMPS_INC: ${{ github.workspace }}/MUMPS_5.5.1/include
-      MUMPS_LIB: ${{ github.workspace }}/MUMPS_5.5.1/lib
+      MUMPS_INC: ${{ github.workspace }}/MUMPS_5.7.3/include
+      MUMPS_LIB: ${{ github.workspace }}/MUMPS_5.7.3/lib
 
     steps:
     - name: Checkout repository
@@ -26,12 +26,12 @@ jobs:
         
     - name: Install MUMPS manually
       run: |
-        # Download MUMPS 5.5.1 (version stable)
+        # Download MUMPS 5.7.3 (version stable)
         curl -L https://coin-or-tools.github.io/ThirdParty-Mumps//MUMPS_5.7.3.tar.gz -o MUMPS_5.7.3.tar.gz
-        tar xzf MUMPS_5.5.1.tar.gz
+        tar xzf MUMPS_5.7.3.tar.gz
         
         # Build MUMPS
-        cd MUMPS_5.5.1
+        cd MUMPS_5.7.3
         cp Make.inc/Makefile.inc.generic.SEQ Makefile.inc
         
         # Update compiler and library settings
