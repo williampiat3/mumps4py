@@ -40,28 +40,14 @@ jobs:
         echo "METIS_DIR=$(brew --prefix metis)" >> $GITHUB_ENV
         echo "OPENBLAS_DIR=$(brew --prefix openblas)" >> $GITHUB_ENV
 
-    - name: Check METIS and OpenBLAS installation
+    - name: Check metis.h exists
       run: |
-        # Verify METIS headers and libraries
-        if [ ! -f "$METIS_DIR/include/metis.h" ]; then
-          echo "Error: metis.h not found in $METIS_DIR/include"
-          ls -l "$METIS_DIR/include"
-          exit 1
-        fi
-        if [ ! -f "$METIS_DIR/lib/libmetis.dylib" ] && [ ! -f "$METIS_DIR/lib/libmetis.a" ]; then
-          echo "Error: libmetis not found in $METIS_DIR/lib"
-          ls -l "$METIS_DIR/lib"
-          exit 1
-        fi
-        echo "METIS header found: $METIS_DIR/include/metis.h"
-        echo "METIS library found in: $METIS_DIR/lib"
-        # Verify OpenBLAS
-        if [ ! -f "$OPENBLAS_DIR/lib/libopenblas.dylib" ] && [ ! -f "$OPENBLAS_DIR/lib/libopenblas.a" ]; then
-          echo "Error: libopenblas not found in $OPENBLAS_DIR/lib"
-          ls -l "$OPENBLAS_DIR/lib"
-          exit 1
-        fi
-        echo "OpenBLAS library found in: $OPENBLAS_DIR/lib"
+        ls -l "$METIS_DIR/include/metis.h"
+
+    - name: Check METIS library presence
+      run: |
+        echo "Checking METIS in: $METIS_DIR/lib"
+        ls -l "$METIS_DIR/lib/libmetis.dylib" || ls -l "$METIS_DIR/lib/libmetis.a"
 
     - name: Install MUMPS 5.7.3 (parallel + shared with mpicc/mpif90, no OpenMP)
       run: |
@@ -80,9 +66,9 @@ jobs:
         echo "FC = mpif90" >> Makefile.inc
         echo "FL = mpif90" >> Makefile.inc
 
-        # Compiler and linker flags
-        echo "CFLAGS = -O -fPIC -I${METIS_DIR}/include" >> Makefile.inc
-        echo "LDFLAGS = -L${METIS_DIR}/lib -L${OPENBLAS_DIR}/lib" >> Makefile.inc
+        # Compiler and linker flags with proper rpath
+        echo "CFLAGS = -O -fPIC" >> Makefile.inc
+        echo "LDFLAGS = -Wl,-rpath,${METIS_DIR}/lib -Wl,-rpath,${OPENBLAS_DIR}/lib" >> Makefile.inc
         echo "OPTC = -O -fPIC -I${METIS_DIR}/include" >> Makefile.inc
         echo "OPTF = -O2 -fallow-argument-mismatch -fPIC" >> Makefile.inc
 
@@ -90,30 +76,29 @@ jobs:
         echo "LIBBLAS = -L${OPENBLAS_DIR}/lib -lopenblas" >> Makefile.inc
         echo "LIBMETIS = -L${METIS_DIR}/lib -lmetis" >> Makefile.inc
         echo "IMETIS = -I${METIS_DIR}/include" >> Makefile.inc
-        echo "SONAMEOPT = -install_name" >> Makefile.inc  # macOS-compatible option
+        echo "SONAMEOPT = -install_name" >> Makefile.inc  # macOS compatible
 
-        # Remove OpenMP, Scotch, and fix library extension
+        # Fix all Makefiles: remove unsupported -soname options
+        find . -name "Makefile*" -exec sed -i '' 's/-Wl,-soname,[^ ]*//g' {} \;
+        find . -name "Makefile*" -exec sed -i '' 's/-Wl,-soname//g' {} \;
+
+        # Remove OpenMP and Scotch flags
         find . -name "Makefile*" -exec sed -i '' 's/-fopenmp//g' {} \;
         find . -name "Makefile*" -exec sed -i '' 's/-Xpreprocessor -fopenmp//g' {} \;
         find . -name "Makefile*" -exec sed -i '' 's/-Dscotch//g' {} \;
-        find . -name "Makefile*" -exec sed -i '' 's/-soname/-install_name/g' {} \;
-        find . -name "Makefile*" -exec sed -i '' 's/\.so/.dylib/g' {} \;
-
-        # Export linker flags to ensure METIS and OpenBLAS are found
-        export LDFLAGS="-L${METIS_DIR}/lib -lmetis -L${OPENBLAS_DIR}/lib -lopenblas"
 
         # Build PORD
         cd PORD/lib
-        make PLAT="" FPIC="-fPIC" CC="mpicc" CFLAGS="-O -fPIC -I${METIS_DIR}/include" LDFLAGS="${LDFLAGS}" AR="ar vr " RANLIB="ranlib" OUTC="-o " LIBEXT=".a" LIBEXT_SHARED=".dylib" libpord.dylib
+        make PLAT="" FPIC="-fPIC" CC="mpicc" CFLAGS="-O -fPIC" AR="ar vr " RANLIB="ranlib" OUTC="-o " LIBEXT=".a" LIBEXT_SHARED=".dylib" libpord.dylib
         cd ../..
 
         # Compile additional sources
-        mpicc -I./include -O -fPIC -I${METIS_DIR}/include -c ./src/graph.c -o ./src/graph.o || true
-        mpicc -I./include -O -fPIC -I${METIS_DIR}/include -c ./src/gbipart.c -o ./src/gbipart.o || true
-        mpicc -I./include -O -fPIC -I${METIS_DIR}/include -c ./src/gbisect.c -o ./src/gbisect.o || true
+        mpicc -I./include -O -fPIC -c ./src/graph.c -o ./src/graph.o || true
+        mpicc -I./include -O -fPIC -c ./src/gbipart.c -o ./src/gbipart.o || true
+        mpicc -I./include -O -fPIC -c ./src/gbisect.c -o ./src/gbisect.o || true
 
         # Build MUMPS
-        make -j$(sysctl -n hw.ncpu) allshared
+        make -j$(sysctl -n hw.ncpu) allshared V=1
 
         # Organize headers and libraries
         mkdir -p include lib
@@ -131,8 +116,8 @@ jobs:
     - name: Build mumps4py (no OpenMP)
       run: |
         export CC=mpicc
-        export CFLAGS="-O -fPIC -I${{ env.MUMPS_INC }} -I${{ env.METIS_DIR }}/include"
-        export LDFLAGS="-L${{ env.MUMPS_LIB }} -L${{ env.METIS_DIR }}/lib -lmetis -L${{ env.OPENBLAS_DIR }}/lib -lopenblas"
+        export CFLAGS="-O -fPIC -I${MUMPS_INC} -I${METIS_DIR}/include"
+        export LDFLAGS="-L${MUMPS_LIB} -Wl,-rpath,${MUMPS_LIB} -Wl,-rpath,${METIS_DIR}/lib"
         python setup.py build_ext --inplace --verbose
         pip install .
 
