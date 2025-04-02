@@ -13,7 +13,7 @@ jobs:
     env:
       MUMPS_SOLVERS: dmumps,zmumps,smumps,cmumps
       MUMPS_INC: ${{ github.workspace }}/MUMPS_5.7.3/include
-      MUMPS_LIB: ${{ github.workflow }}/MUMPS_5.7.3/lib
+      MUMPS_LIB: ${{ github.workspace }}/MUMPS_5.7.3/lib
       LIBOMP_DIR: $(brew --prefix libomp)
       OPENBLAS_DIR: $(brew --prefix openblas)
       METIS_DIR: $(brew --prefix metis)
@@ -26,25 +26,43 @@ jobs:
       run: |
         brew update
         brew install open-mpi openblas lapack cmake metis libomp gcc
-        # Verify gfortran is installed
-        gfortran --version
-        # Add gfortran to PATH (Homebrew installs it as part of gcc)
+        # Find the installed gfortran version
+        GFORTRAN_PATH=$(find $(brew --prefix gcc)/bin -name 'gfortran-*' | head -n 1)
+        if [ -z "$GFORTRAN_PATH" ]; then
+          echo "Error: gfortran not found after installing gcc"
+          exit 1
+        fi
+        GFORTRAN_BIN=$(basename $GFORTRAN_PATH)
+        echo "Found gfortran: $GFORTRAN_BIN"
+        # Verify gfortran works
+        $GFORTRAN_BIN --version
+        # Add gcc bin directory to PATH
         echo "$(brew --prefix gcc)/bin" >> $GITHUB_PATH
-    
-    - name: Ensure gfortran is available
+        # Verify PATH update
+        echo "PATH after update: $PATH"
+        which $GFORTRAN_BIN
+
+    - name: Link gfortran (if needed)
       run: |
+        # Check if gfortran is already available
         if ! command -v gfortran &> /dev/null; then
-          GFORTRAN_BIN=$(ls $(brew --prefix gcc)/bin/gfortran-* | head -n 1)
-          if [ -x "$GFORTRAN_BIN" ]; then
-            sudo ln -s $GFORTRAN_BIN /usr/local/bin/gfortran
+          # Find the installed gfortran binary (e.g., gfortran-13)
+          GFORTRAN_BIN=$(find $(brew --prefix gcc)/bin -name 'gfortran-*' | head -n 1)
+          if [ -n "$GFORTRAN_BIN" ]; then
+            # Link to a user-writable directory in PATH
+            mkdir -p ~/bin
+            ln -sf "$GFORTRAN_BIN" ~/bin/gfortran
+            echo "~/bin" >> $GITHUB_PATH
+            echo "Linked $GFORTRAN_BIN to ~/bin/gfortran"
           else
-            echo "gfortran binary not found in brew gcc path"
+            echo "Error: No gfortran binary found in $(brew --prefix gcc)/bin"
             exit 1
           fi
         fi
+        # Verify
         which gfortran
         gfortran --version
-        
+
     - name: Install MUMPS 5.7.3 (parallel + shared with mpicc/mpif90)
       run: |
         curl -L https://coin-or-tools.github.io/ThirdParty-Mumps/MUMPS_5.7.3.tar.gz -o MUMPS_5.7.3.tar.gz
@@ -61,6 +79,8 @@ jobs:
         echo "CC = mpicc" >> Makefile.inc
         echo "FC = mpif90" >> Makefile.inc
         echo "FL = mpif90" >> Makefile.inc
+        # Optionally specify FORTRAN if needed
+        # echo "FORTRAN = gfortran" >> Makefile.inc
 
         # Flags for Clang's OpenMP
         echo "CFLAGS = -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC" >> Makefile.inc
@@ -83,8 +103,8 @@ jobs:
         mpicc -I./include -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC -c ./src/gbipart.c -o ./src/gbipart.o || true
         mpicc -I./include -Xpreprocessor -fopenmp -I${LIBOMP_DIR}/include -O -fPIC -c ./src/gbisect.c -o ./src/gbisect.o || true
 
-        # Build MUMPS
-        make -j$(sysctl -n hw.ncpu) allshared
+        # Build MUMPS with verbose output
+        make -j$(sysctl -n hw.ncpu) allshared V=1
 
         # Copy artifacts
         mkdir -p include lib
