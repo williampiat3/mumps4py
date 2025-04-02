@@ -31,7 +31,6 @@ jobs:
           mingw-w64-x86_64-python
           mingw-w64-x86_64-python-pip
           mingw-w64-x86_64-python-numpy
-          mingw-w64-x86_64-python-scipy
           mingw-w64-x86_64-python-mpi4py
           mingw-w64-x86_64-msmpi
 
