@@ -71,6 +71,11 @@ jobs:
         echo "OPTF = -O3" >> Makefile.inc
         echo "OPTC = -O3" >> Makefile.inc
         mkdir -p lib include
+
+        # Verify make is available
+        which make
+        make --version
+
         make all
         cp include/*.h include/
         cp lib/*.a lib/
