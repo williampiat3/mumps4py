@@ -21,7 +21,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install system packages + OpenMPI + gfortran
+    - name: Install system packages + OpenMPI + gfortran + METIS
       run: |
         brew update
         brew install open-mpi openblas lapack cmake metis gcc
@@ -36,6 +36,13 @@ jobs:
         echo "$(brew --prefix gcc)/bin" >> $GITHUB_PATH
         echo "PATH after update: $PATH"
         which $GFORTRAN_BIN
+        # Verify METIS installation
+        if [ ! -f "${METIS_DIR}/include/metis.h" ]; then
+          echo "Error: metis.h not found in ${METIS_DIR}/include"
+          ls -l ${METIS_DIR}/include
+          exit 1
+        fi
+        echo "METIS header found: ${METIS_DIR}/include/metis.h"
 
     - name: Link gfortran (if needed)
       run: |
@@ -72,9 +79,9 @@ jobs:
         echo "FL = mpif90" >> Makefile.inc
 
         # Basic optimization flags, no OpenMP
-        echo "CFLAGS = -O -fPIC" >> Makefile.inc
-        echo "LDFLAGS = " >> Makefile.inc
-        echo "OPTC = -O -fPIC" >> Makefile.inc
+        echo "CFLAGS = -O -fPIC -I${METIS_DIR}/include" >> Makefile.inc
+        echo "LDFLAGS = -L${METIS_DIR}/lib" >> Makefile.inc
+        echo "OPTC = -O -fPIC -I${METIS_DIR}/include" >> Makefile.inc
         echo "OPTF = -O2 -fallow-argument-mismatch -fPIC" >> Makefile.inc
 
         # Other libraries (METIS and OpenBLAS, no Scotch)
@@ -88,15 +95,19 @@ jobs:
         find . -name "Makefile*" -exec sed -i '' 's/-Xpreprocessor -fopenmp//g' {} \;
         find . -name "Makefile*" -exec sed -i '' 's/-Dscotch//g' {} \;
 
+        # Export CFLAGS to ensure METIS include path is used
+        export CFLAGS="-O -fPIC -I${METIS_DIR}/include"
+        export LDFLAGS="-L${METIS_DIR}/lib -lmetis"
+
         # Build PORD library and additional object files (no OpenMP)
         if [ "./PORD/lib/" != "" ] ; then \
             cd ./PORD/lib/; \
-            /Applications/Xcode_15.4.app/Contents/Developer/usr/bin/make PLAT="" FPIC="-fPIC" CC="mpicc" CFLAGS="-O -fPIC" AR="ar vr " RANLIB="ranlib" OUTC="-o " LIBEXT=".a" LIBEXT_SHARED=".dylib" libpord.dylib; \
+            /Applications/Xcode_15.4.app/Contents/Developer/usr/bin/make PLAT="" FPIC="-fPIC" CC="mpicc" CFLAGS="-O -fPIC -I${METIS_DIR}/include" AR="ar vr " RANLIB="ranlib" OUTC="-o " LIBEXT=".a" LIBEXT_SHARED=".dylib" libpord.dylib; \
             cd ../..; \
         fi
-        mpicc -I./include -O -fPIC -c ./src/graph.c -o ./src/graph.o || true
-        mpicc -I./include -O -fPIC -c ./src/gbipart.c -o ./src/gbipart.o || true
-        mpicc -I./include -O -fPIC -c ./src/gbisect.c -o ./src/gbisect.o || true
+        mpicc -I./include -O -fPIC -I${METIS_DIR}/include -c ./src/graph.c -o ./src/graph.o || true
+        mpicc -I./include -O -fPIC -I${METIS_DIR}/include -c ./src/gbipart.c -o ./src/gbipart.o || true
+        mpicc -I./include -O -fPIC -I${METIS_DIR}/include -c ./src/gbisect.c -o ./src/gbisect.o || true
 
         # Build MUMPS with verbose output
         make -j$(sysctl -n hw.ncpu) allshared V=1
@@ -117,8 +128,8 @@ jobs:
     - name: Build mumps4py (no OpenMP)
       run: |
         export CC=mpicc
-        export CFLAGS="-O -fPIC -I${{ env.MUMPS_INC }}"
-        export LDFLAGS="-L${{ env.MUMPS_LIB }}"
+        export CFLAGS="-O -fPIC -I${{ env.MUMPS_INC }} -I${{ env.METIS_DIR }}/include"
+        export LDFLAGS="-L${{ env.MUMPS_LIB }} -L${{ env.METIS_DIR }}/lib -lmetis"
         python setup.py build_ext --inplace --verbose
         pip install .
 
