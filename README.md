@@ -124,7 +124,7 @@ python setup.py clean
 ```bash
 @techreport{mumps4py2025,
   title = {Mumps4py: Python interface for the MUMPS solver},
-  author = {},
+  author = {I. Kissami},
   month = mar,
   year = {2025},
   institution = {Mohammed VI Polytechnic University},
