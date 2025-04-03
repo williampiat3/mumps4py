@@ -118,3 +118,16 @@ tests/test_zmumps.py s  [100%]
 ```bash
 python setup.py clean
 ```
+
+## Citation
+
+```bash
+@techreport{mumps4py2025,
+  title = {Mumps4py: Python interface for the MUMPS solver},
+  author = {},
+  month = mar,
+  year = {2025},
+  institution = {Mohammed VI Polytechnic University},
+  doi = {10.13140/RG.2.2.26885.05606/2}
+}
+```
