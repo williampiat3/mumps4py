@@ -47,10 +47,15 @@ def generate_cython_wrapper(fields, class_name, filename):
     
     cython_code = f"__all__ = ['{class_name}', '{filename}']\n\n"
     cython_code += "from libc cimport stdint\n\n"
+
+
+    import platform
+    SYSTEM = platform.system().lower()
+    int_type = "int" if SYSTEM != "windows" else "stdint.int64_t"
     
     cython_code += f"""cdef extern from '{filename}':  
 
-    ctypedef int MUMPS_INT
+    ctypedef {int_type} MUMPS_INT
     ctypedef double {class_name[0]}MUMPS_COMPLEX
     ctypedef double {class_name[0]}MUMPS_REAL
     ctypedef stdint.int64_t MUMPS_INT8
